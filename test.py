@@ -1,1 +1,2 @@
-print("was geht")
+print("test")
+print("hey")
