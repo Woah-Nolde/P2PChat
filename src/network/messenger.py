@@ -22,7 +22,7 @@ def receive_messages(my_port):
             #@brief Warte auf eingehende Nachricht 
             #@brief recvfrom gibt zurück:
             #@brief data: die empfangenen Bytes (max. 1024 Bytes)
-            #@brief addr: Tuple mit (IP-Adresse, Port) des Absenders
+            #@brief addr: IP-Adresse des Absenders
 
 
         message = data.decode()
