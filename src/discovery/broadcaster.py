@@ -34,7 +34,7 @@ while True:
 
     if command == "JOIN" and len(parts) == 3: 
         handle = parts[1]                
-        port = parts[2]         
+        port = parts[2]        
         ip = addr[0]              #@brief einzelnen teile der liste 'parts' werden gespeichert
 
         clients[handle] = (ip, port) #@brief speicher die Sender informationen in 'clients'
