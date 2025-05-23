@@ -34,7 +34,7 @@ while True:
 
     if command == "JOIN" and len(parts) == 3: 
         handle = parts[1]                
-        port = parts[2]        
+        port = parts[2]
         ip = addr[0]              #@brief einzelnen teile der liste 'parts' werden gespeichert
 
         clients[handle] = (ip, port) #@brief speicher die Sender informationen in 'clients'
@@ -46,3 +46,9 @@ while True:
          response = f"KNOWUSERS {user_list}"
          udp_sock.sendto(response.encode(), addr)
          print(f"[Discovery] Antwort gesendet an {addr}: {response}")
+    elif command == "LEAVE" and len(parts) == 2: 
+        handle = parts[1]
+        if handle in clients:        #@brief lösche den teilnehmer aus der liste, falls er in der liste ist
+            del clients[handle]
+        print(f"[Discovery] {handle} hat den Chat verlassen.")
+
