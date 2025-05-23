@@ -39,3 +39,10 @@ while True:
 
         clients[handle] = (ip, port) #@brief speicher die Sender informationen in 'clients'
         print(f"[Discovery] {handle} ist online: {ip}:{port}")
+    elif command == "WHO":
+         user_list = ", ".join( f"{h} {ip} {port}" for h, (ip, port) in clients.items() )
+         #@brief bedeutet basically : Bilde für jedes Schlüssel werte paar in clients einen f-String mit der form "{h} {ip} {port}"
+         #@bief die for each iteriert durch clients. Die funktion items() nimmt sich tupel raus, also Alice : (ip, port)
+         response = f"KNOWUSERS {user_list}"
+         udp_sock.sendto(response.encode(), addr)
+         print(f"[Discovery] Antwort gesendet an {addr}: {response}")
