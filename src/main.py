@@ -15,7 +15,22 @@ def send_leave(handle):
 
 
 def parse_knownusers(response):
-    return ""
+    if not response.startswith("KNOWUSERS "):  #@brief stellt sicher, dass es sich um die WHO anfrage handelt
+        return {}
+
+    user_info = response[len("KNOWUSERS "):] #@brief KNOWUSERS wird raus geschnitten
+
+    users = user_info.split(", ") #@brief alles wird in die liste users gepackt und mit , getrennt (users_info ist ein großer string und jz in einer liste)
+    known = {}
+
+    for user in users:
+        try:
+            handle, ip, port = user.strip().split() #@brief strip entfernt leerzeichen an anfang und ende und split teilt auf in handle, ip und port
+            known[handle] = (ip, int(port)) #@brief alles wird in die liste 'known' gepackt
+        except ValueError:
+            continue     #@brief falls das Format fehlerhaft ist
+
+    return known
 
 
 def discover_users():
