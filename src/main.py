@@ -10,7 +10,11 @@ def send_join(handle, port):
         s.sendto(msg.encode(), ('255.255.255.255', 4000)) #@brief schicke JOIN Nachricht an Broadcast Adresse
 
 def send_leave(handle):
-    return
+    message = f"LEAVE {handle}"
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        s.sendto(message.encode(), ('255.255.255.255', 4000))
+
 
 
 
