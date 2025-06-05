@@ -2,6 +2,7 @@ import socket
 import threading
 from network.messenger import send_msg
 from network.messenger import receive_messages
+from network.messenger import send_img
 
 def send_join(handle, port):
     msg = f"JOIN {handle} {port}" 
