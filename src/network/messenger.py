@@ -55,6 +55,7 @@
     
 # messenger.py
 import socket
+import os
 
 
 def receive_messages(my_port):
@@ -67,7 +68,7 @@ def receive_messages(my_port):
 
         if data.startswith(b"IMG:"):
             parts = data.split(b":", 3)
-            filename = parts[1].decode()
+            filename = os.path.basename(parts[1].decode())
             size = int(parts[2].decode())
             image_data = parts[3]
 

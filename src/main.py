@@ -76,11 +76,16 @@ def main():
             if target not in known_users:
                 print("Unbekannter Nutzer.")
                 continue
-            text = input("Nachricht: ")
+            text = input("Nachricht (oder img:<pfad>): ")
             ip, p = known_users[target]
-            send_msg(ip, p, handle, text)
-    
-    except KeyboardInterrupt: # wird ausgelöst durch strg + c
+
+            if text.startswith("img:"):
+                pfad = text[4:].strip()
+                send_img(ip, p, pfad)  # NEU: Aufruf der Bildversand-Funktion
+            else:
+                send_msg(ip, p, handle, text)
+
+    except KeyboardInterrupt:
         send_leave(handle)
         print("\nProgramm beendet.")
 
