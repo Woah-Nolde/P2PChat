@@ -57,6 +57,17 @@
 import socket
 import os
 
+# NEU: SLCP-Protokoll-Parser
+def parse_slcp(message):
+    if message.startswith("MSG:"):
+        parts = message[4:].split(" ", 1)
+        if len(parts) == 2:
+            sender = parts[0]
+            text = parts[1].replace("%20", " ")  # Maskierung auflösen
+            return ("MSG", sender, text)
+    return ("UNKNOWN", None, message)
+
+
 
 def receive_messages(my_port):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -78,16 +89,27 @@ def receive_messages(my_port):
 
         else:
             message = data.decode()
-            print(f"\n[Nachricht von {addr}] {message}\n> ", end="")
+            typ, sender, text = parse_slcp(message)  # NEU: Parser verwenden
+            if typ == "MSG":
+                print(f"\n[Nachricht von {sender}] {text}\n> ", end="")
+            else:
+                print(f"\n[Unbekanntes Format] {message}\n> ", end="")
+
 
 
 def send_msg(target_ip, target_port, sender_handle, text):
-    msg = f"MSG: {sender_handle} {text}"
+    text_masked = text.replace(" ", "%20")
+    msg = f"MSG:{sender_handle} {text_masked}"
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
         s.sendto(msg.encode(), (target_ip, target_port))
 
 
 def send_img(target_ip, target_port, filename):
+
+    if not os.path.exists(filename):
+        print(f"[Fehler] Bilddatei {filename} nicht gefunden.")
+        return
+    
     with open(filename, "rb") as f:
         image_data = f.read()
 
