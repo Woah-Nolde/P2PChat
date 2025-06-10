@@ -1,0 +1,12 @@
+# Ignoriere virtuelle Umgebungen
+venv/
+__pycache__/
+*.pyc
+
+# Editor-spezifische Dateien
+.vscode/
+.idea/
+
+# Betriebssystemkram
+.DS_Store
+Thumbs.db
