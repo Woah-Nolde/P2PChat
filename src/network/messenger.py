@@ -79,12 +79,28 @@ def receive_messages(my_port):
 
         if data.startswith(b"IMG:"):
             parts = data.split(b":", 3)
+
+            if len(parts) != 4:
+                print(f"[Fehler] Ungültiges Bildformat von {addr}")
+                continue
+
             filename = os.path.basename(parts[1].decode())
-            size = int(parts[2].decode())
+
+            try:
+                size = int(parts[2].decode())
+            except ValueError:
+                print(f"[Fehler] Ungültiger Size-Header bei empfangener IMG-Nachricht.")
+                continue
+
             image_data = parts[3]
+
+            if len(image_data) != size:
+                print(f"[Fehler] Bild unvollständig: erwartet {size} Bytes, empfangen {len(image_data)} Bytes.")
+                continue  #  unvollständiges Bild nicht speichern
 
             with open("empfangen_" + filename, "wb") as f:
                 f.write(image_data)
+
             print(f"[Empfänger] Bild empfangen von {addr} → gespeichert als empfangen_{filename}")
 
         else:
