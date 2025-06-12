@@ -4,10 +4,13 @@
 @date 21.05.2025
 
 """""
-import socket
 
-#@brief Discovery Port 400 ist eine vorgaben
-DISCOVERY_PORT = 4000
+import socket
+from config_manager import load_config
+config = load_config()
+
+#@brief Discovery Port 4000 ist eine vorgaben
+DISCOVERY_PORT = config["network"]["whoisport"]
 
 Bytes = 1024  #@brief maximale groeße in bytes
 """""!
