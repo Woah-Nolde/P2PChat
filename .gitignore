@@ -2,6 +2,13 @@
 venv/
 __pycache__/
 *.pyc
+myenv/
+env/
+.venv/
+
+# Umgebungsvariablen
+.env
+.venv
 
 # Editor-spezifische Dateien
 .vscode/
