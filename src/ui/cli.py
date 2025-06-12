@@ -1,6 +1,6 @@
 import config #toml
 import socket
-from config_manager import load_config, save_config, lookup_handle
+from config_manager import load_config, save_config, edit_config, lookup_handle
 from discovery import send_leave
 def run_cli():
     config= load_config()
@@ -41,6 +41,9 @@ def run_cli():
                 config['handle'] = neuer_name
                 save_config(config)
                 print("Name geändert, bitte neu starten.")
+            
+            elif command == "config":
+               edit_config()
             
             elif command == "quit":
                 send_leave()
