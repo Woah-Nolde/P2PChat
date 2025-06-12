@@ -6,7 +6,7 @@
 """""
 
 import socket
-from config_manager import load_config
+from config_manag import load_config
 
 
 def send_join(handle, port, whoisport):
