@@ -6,6 +6,7 @@
 """""
 
 import socket
+import os
 from config_manag import load_config
 
 
@@ -55,10 +56,17 @@ Bytes = 1024  #@brief maximale groeße in bytes
 
 """""
 clients = {} #@brief liste für alle teilnehmer im Netz
-udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) #@brief erstelle einen internet udp socket
-udp_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) #@brief erlaubt wiederverwendung von udp socket (auch belegt)
-udp_sock.bind(('', DISCOVERY_PORT)) #@brief Bindung an den Port 4000 und lauscht auf allen interfaces sei es lan , wlan oder localhost
-print(f"[Discovery] Lausche auf UDP-Port {DISCOVERY_PORT}...") 
+try:
+    udp_sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+    
+    udp_sock.bind(('', DISCOVERY_PORT))
+    print(f"[Discovery] Lausche auf UDP-Port {DISCOVERY_PORT}...")
+except os.error:
+    udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) #@brief erstelle einen internet udp socket
+    udp_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) #@brief erlaubt wiederverwendung von udp socket (auch belegt)
+    udp_sock.bind(('', DISCOVERY_PORT)) #@brief Bindung an den Port 4000 und lauscht auf allen interfaces sei es lan , wlan oder localhost
+    print(f"[Discovery] Lausche auf UDP-Port {DISCOVERY_PORT}...")
+
 
 while True:
     data, addr = udp_sock.recvfrom(Bytes) #@brief Empfangen von Nachrichten
