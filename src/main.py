@@ -5,7 +5,8 @@ from messenger import receive_messages
 from messenger import send_img
 from config_manager import load_config,save_config
 import time
-
+from multiprocessing import Process, Queue
+from discovery import discoveryloop
 
 def send_join(handle, port):
     msg = f"JOIN {handle} {port}" 
@@ -95,7 +96,22 @@ def main():
     config = load_config()
     handle = config["user"]["handle"]
     whoisport = config["network"]["whoisport"]
-    port = find_free_port(config["network"]["port_range"][0],config["network"]["port_range"][1])    #@brief Port auf dem man erreichbar ist
+    port = find_free_port(config["network"]["port_range"][0],config["network"]["port_range"][1]) 
+
+    ui_to_net = Queue()  # UI -> Netzwerk ("Sende Nachricht an Bob")
+    net_to_ui = Queue()  # Netzwerk -> UI ("Neue Nachricht von Alice")
+    net_to_disc = Queue()  # Netzwerk -> Discovery ("WHO?")
+    disc_to_net = Queue()  # Discovery -> Netzwerk ("Alice ist online")
+    disc_to_ui = Queue()
+
+    p1 = Process(target=network_main, args=(ui_to_net, net_to_ui, net_to_disc, disc_to_net,port))
+    p1.start()
+    p2 = Process(target=discoveryloop, args=(net_to_disc, disc_to_net,disc_to_ui,whoisport),daemon=True)
+    p2.start()
+
+
+
+
     send_join(handle, port)
     thread = threading.Thread(target=receive_messages, args=(port,))
     thread.daemon = True
