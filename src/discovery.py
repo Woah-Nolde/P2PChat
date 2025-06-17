@@ -7,9 +7,7 @@
 
 import socket
 import os
-#from config_manag import load_config
-from config_manager import config_manager
-
+import config_manager
 
 def send_join(handle, port, whoisport):
     msg = f"JOIN {handle} {port}" 
@@ -39,11 +37,13 @@ def discover_users(whoisport):
 
 
 
-def starteconfig():
-    global config
+
+
+def discoveryloop():
     config = config_manager.load_config()
+    
     #@brief Discovery Port 4000 ist eine vorgaben
-    global DISCOVERY_PORT       
+        
     DISCOVERY_PORT = config["network"]["whoisport"]
     
     """""!
@@ -52,13 +52,7 @@ def starteconfig():
 
     """""
     
-
-
-        
-
-
-def discoveryloop():
-    global DISCOVERY_PORT
+   
    
     try:
         udp_sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)  
