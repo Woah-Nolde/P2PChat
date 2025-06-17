@@ -1,5 +1,4 @@
 
-    
 # messenger.py
 import socket
 import os
@@ -17,9 +16,14 @@ def parse_slcp(message):
 
 
 def receive_messages(my_port):
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.bind(('', my_port))
-    print(f"[Empfänger] Lausche auf Port {my_port} für eingehende Nachrichten...")
+    try:
+        sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+        sock.bind(('::', my_port))
+        print(f"[Empfänger] Lausche auf Port {my_port} (IPv6) für eingehende Nachrichten...")
+    except:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.bind(('', my_port))
+        print(f"[Empfänger] Lausche auf Port {my_port} (IPv4) für eingehende Nachrichten...")
 
     while True:
         data, addr = sock.recvfrom(65507)
@@ -63,8 +67,12 @@ def receive_messages(my_port):
 def send_msg(target_ip, target_port, sender_handle, text):
     text_masked = text.replace(" ", "%20")
     msg = f"MSG:{sender_handle} {text_masked}"
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-        s.sendto(msg.encode(), (target_ip, target_port))
+    if ":" in target_ip:
+        with socket.socket(socket.AF_INET6, socket.SOCK_DGRAM) as s:
+            s.sendto(msg.encode(), (target_ip, target_port, 0, 0))
+    else:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.sendto(msg.encode(), (target_ip, target_port))
 
 
 def send_img(target_ip, target_port, filename):
@@ -83,6 +91,10 @@ def send_img(target_ip, target_port, filename):
         print("[Fehler] Bild zu groß für ein UDP-Paket.")
         return
 
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-        s.sendto(message, (target_ip, target_port))
+    if ":" in target_ip:
+        with socket.socket(socket.AF_INET6, socket.SOCK_DGRAM) as s:
+            s.sendto(message, (target_ip, target_port, 0, 0))
+    else:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.sendto(message, (target_ip, target_port))
     print(f"[Sender] Bild {filename} an {target_ip}:{target_port} gesendet.")

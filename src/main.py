@@ -1,20 +1,31 @@
 import socket
 import threading
-from network.messenger import send_msg
-from network.messenger import receive_messages
-from network.messenger import send_img
+from messenger import send_msg
+from messenger import receive_messages
+from messenger import send_img
 
 def send_join(handle, port):
     msg = f"JOIN {handle} {port}" 
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1) #@brief stelle auf socket Ebene ein, dass an die Broadcast Adresse versendet werden kann
-        s.sendto(msg.encode(), ('255.255.255.255', 4000)) #@brief schicke JOIN Nachricht an Broadcast Adresse
+    try:
+        # ✅ IPv6 Multicast (wenn möglich)
+        with socket.socket(socket.AF_INET6, socket.SOCK_DGRAM) as s:
+            s.sendto(msg.encode(), ('ff02::1', 4000, 0, 0))
+    except:
+        # ✅ Fallback: IPv4 Broadcast
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+            s.sendto(msg.encode(), ('255.255.255.255', 4000))
+
 
 def send_leave(handle):
     message = f"LEAVE {handle}"
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        s.sendto(message.encode(), ('255.255.255.255', 4000))
+    try:
+        with socket.socket(socket.AF_INET6, socket.SOCK_DGRAM) as s:
+            s.sendto(message.encode(), ('ff02::1', 4000, 0, 0))
+    except:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+            s.sendto(message.encode(), ('255.255.255.255', 4000))
 
 
 
@@ -39,15 +50,26 @@ def parse_knownusers(response):
 
 
 def discover_users():
-     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        s.bind(('', 0))
+    try:
+        # ✅ IPv6 Discovery versuchen
+        s = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+        s.bind(('::', 0))
         s.settimeout(2)
-        s.sendto("WHO".encode(), ('255.255.255.255', 4000))
+        s.sendto("WHO".encode(), ('ff02::1', 4000, 0, 0))
+        data, addr = s.recvfrom(1024)
+        print(f"[Client] (IPv6) Antwort: {data.decode()}")
+        return data.decode()
+    except:
         try:
-            data, addr = s.recvfrom(1024)
-            print(f"[Client] Antwort: {data.decode()}")
-            return data.decode()
+            # ✅ IPv4 Fallback Discovery
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+                s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+                s.bind(('', 0))
+                s.settimeout(2)
+                s.sendto("WHO".encode(), ('255.255.255.255', 4000))
+                data, addr = s.recvfrom(1024)
+                print(f"[Client] (IPv4) Antwort: {data.decode()}")
+                return data.decode()
         except socket.timeout:
             print("[Client] Keine Antwort erhalten.")
             return ""
