@@ -3,6 +3,8 @@ import threading
 from messenger import send_msg
 from messenger import receive_messages
 from messenger import send_img
+from config_manager import load_config,save_config
+
 
 def send_join(handle, port):
     msg = f"JOIN {handle} {port}" 
@@ -77,8 +79,10 @@ def discover_users():
 
 
 def main():
-    handle = input("Benutzernamen: ") 
-    port = int(input("Port: "))     #@brief Port auf dem man erreichbar ist
+    config = load_config()
+    handle = config["user"]["handle"]
+    whoisport = config["network"]["whoisport"]
+    port = find_free_port(config["network"]["port_range"][0],config["network"]["port_range"][1])    #@brief Port auf dem man erreichbar ist
     send_join(handle, port)
     thread = threading.Thread(target=receive_messages, args=(port,))
     thread.daemon = True
