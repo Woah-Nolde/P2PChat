@@ -4,6 +4,7 @@ from messenger import send_msg
 from messenger import receive_messages
 from messenger import send_img
 from config_manager import load_config,save_config
+import time
 
 
 def send_join(handle, port):
@@ -76,6 +77,18 @@ def discover_users():
             print("[Client] Keine Antwort erhalten.")
             return ""
 
+def find_free_port(start_port, end_port):
+    """Findet einen freien UDP-Port im angegebenen Bereich."""
+    for port in range(start_port, end_port + 1):
+        try:
+            # UDP-Socket erstellen (SOCK_DGRAM statt SOCK_STREAM)
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udp_socket:
+                udp_socket.bind(('0.0.0.0', port))  # Bind auf allen Interfaces
+                time.sleep(0.1)
+            return port  # Port ist frei
+        except OSError:
+            continue  # Port ist belegt, nächster Versuch
+    raise RuntimeError(f"Kein freier UDP-Port im Bereich {start_port}-{end_port} gefunden!")
 
 
 def main():
