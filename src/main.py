@@ -13,6 +13,39 @@ import sys
 def print_prompt():
     sys.stdout.write("\nCommand > ")
     sys.stdout.flush()
+
+def show_net_and_disc_messages(disc_to_ui,net_to_ui):
+    while True:
+
+        if not net_to_ui.empty():
+            msg = net_to_ui.get()
+            if msg["type"] == "WHO_RESPONSE":
+                    global known_users 
+                    known_users = msg["users"]
+                    if not known_users:
+                        print("\nNiemand online!")
+                    else:
+                        print(f"\nEntdeckte Nutzer: {', '.join(known_users.keys())}")
+                        print_prompt()
+                        
+            if msg["type"]== "MSG":
+                print("\n[Nachricht] von", msg["sender"], msg["text"], "\n> ", end="")
+                print_prompt()
+
+        if not disc_to_ui.empty():
+            msg = disc_to_ui.get()
+            
+            if msg["type"]== "singleton":
+                print(msg["text"])
+
+            if msg["type"]== "JOIN":
+                print("\n[Discovery]" , msg["handle"] ,"ist nun online!" ,msg["ip"] ,":",  msg["port"])
+                print_prompt()
+            if msg["type"]== "LEAVE":
+                print("\n[Discovery]" ,msg["handle"],"hat den Chat verlassen.")
+                print_prompt()
+
+
 def send_join(handle, port):
     msg = f"JOIN {handle} {port}" 
     try:
@@ -108,6 +141,10 @@ def main():
     net_to_disc = Queue()  # Netzwerk -> Discovery ("WHO?")
     disc_to_net = Queue()  # Discovery -> Netzwerk ("Alice ist online")
     disc_to_ui = Queue()
+
+    thread = threading.Thread(target=show_net_and_disc_messages, args=(disc_to_ui,net_to_ui))
+    thread.daemon = True
+    thread.start()
 
     p1 = Process(target=network_main, args=(ui_to_net, net_to_ui, net_to_disc, disc_to_net,port))
     p1.start()
