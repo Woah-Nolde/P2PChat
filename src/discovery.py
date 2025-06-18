@@ -73,13 +73,14 @@ def discoveryloop(net_to_disc, disc_to_net,disc_to_ui,DISCOVERY_PORT):
         udp_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) #@brief erlaubt wiederverwendung von udp socket (auch belegt)
         udp_sock.bind(('', DISCOVERY_PORT)) #@brief Bindung an den Port 4000 und lauscht auf allen interfaces sei es lan , wlan oder localhost
         print(f"[Discovery] Lausche auf UDP-Port {DISCOVERY_PORT}...")
+
     Bytes = 1024  #@brief maximale groeße in bytes
     clients ={}
 
     while True:
             data, addr = udp_sock.recvfrom(Bytes) #@brief Empfangen von Nachrichten
             message = data.decode().strip()  #@brief entfernt leerzeichen am anfang und ender der nachricht
-            print(f"[Discovery] Nachricht erhalten von {addr}: {message}")
+            #print(f"[Discovery] Nachricht erhalten von {addr}: {message}")
 
             parts = message.split() #@brief nachricht wird decoded und aufegeteilt in hanlde command und Port (alles wird in der liste parts gespeichert)
             if not parts:  #@brief falls die nachricht leer ist,
@@ -93,7 +94,8 @@ def discoveryloop(net_to_disc, disc_to_net,disc_to_ui,DISCOVERY_PORT):
                 ip = addr[0]              #@brief einzelnen teile der liste 'parts' werden gespeichert
 
                 clients[handle] = (ip, port) #@brief speicher die Sender informationen in 'clients'
-                print(f"[Discovery] {handle} ist online: {ip}:{port}")
+                disc_to_ui.put({"type": "JOIN","handle": handle, "ip": ip, "port": port})
+                #print(f"[Discovery] {handle} ist online: {ip}:{port}")
             elif command == "WHO":
                 user_list = ", ".join( f"{h} {ip} {port}" for h, (ip, port) in clients.items() )
                 #@brief bedeutet basically : Bilde für jedes Schlüssel werte paar in clients einen f-String mit der form "{h} {ip} {port}"
@@ -105,7 +107,8 @@ def discoveryloop(net_to_disc, disc_to_net,disc_to_ui,DISCOVERY_PORT):
                 handle = parts[1]
                 if handle in clients:        #@brief lösche den teilnehmer aus der liste, falls er in der liste ist
                     del clients[handle]
-                print(f"[Discovery] {handle} hat den Chat verlassen.")
+                #print(f"[Discovery] {handle} hat den Chat verlassen.")
+                disc_to_ui.put({"type": "LEAVE","handle": handle})
     
 
 
