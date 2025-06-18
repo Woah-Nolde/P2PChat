@@ -3,6 +3,7 @@
 import socket
 import os
 import threading
+import time
 
 # NEU: SLCP-Protokoll-Parser
 def parse_slcp(message):
@@ -13,6 +14,8 @@ def parse_slcp(message):
             text = parts[1].replace("%20", " ")  # Maskierung auflösen
             return ("MSG", sender, text)
     return ("UNKNOWN", None, message)
+
+
 
 def network_main(ui_to_net, net_to_ui, net_to_disc, disc_to_net,port):
     
@@ -31,6 +34,57 @@ def network_main(ui_to_net, net_to_ui, net_to_disc, disc_to_net,port):
             if msg["type"] == "WHO":
                 response = discover_users()
                 net_to_ui.put({"type":"WHO_RESPONSE","users": response})
+
+def discover_users():
+    responses = set()
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        s.bind(('', 0))
+        s.settimeout(2)
+        s.sendto("WHO".encode(), ('255.255.255.255', 4000))
+
+        start_time = time.time()
+        while time.time() - start_time < 1.0:  # Sammelphase
+            try:
+                data, _ = s.recvfrom(1024)
+                responses.add(data.decode())  # Deduplizierung
+            except socket.timeout:
+                break
+    
+    # Alle Antworten mergen
+    merged_users = {}
+    for response in responses:
+        users = parse_knownusers(response)
+        merged_users.update(users)
+    
+    return merged_users
+
+        # try:
+        #     data, addr = s.recvfrom(1024)
+        #     #print(f"[Client] Antwort: {data.decode()}")
+        #     return data.decode()
+        # except socket.timeout:
+        #     print("[Client] Keine Antwort erhalten.")
+        #     return ""
+
+
+def parse_knownusers(response):
+    if not response.startswith("KNOWUSERS "):  #@brief stellt sicher, dass es sich um die WHO anfrage handelt
+        return {}
+
+    user_info = response[len("KNOWUSERS "):] #@brief KNOWUSERS wird raus geschnitten
+
+    users = user_info.split(", ") #@brief alles wird in die liste users gepackt und mit , getrennt (users_info ist ein großer string und jz in einer liste)
+    known = {}
+
+    for user in users:
+        try:
+            handle, ip, port = user.strip().split() #@brief strip entfernt leerzeichen an anfang und ende und split teilt auf in handle, ip und port
+            known[handle] = (ip, int(port)) #@brief alles wird in die liste 'known' gepackt
+        except ValueError:
+            continue     #@brief falls das Format fehlerhaft ist
+
+    return known
 
 def receive_messages(my_port,net_to_ui):
     try:
