@@ -62,17 +62,19 @@ def discoveryloop(net_to_disc, disc_to_net,disc_to_ui,DISCOVERY_PORT):
 
     """""
     
+    udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) #@brief erstelle einen internet udp socket
+    udp_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) #@brief erlaubt wiederverwendung von udp socket (auch belegt)
+    udp_sock.bind(('', DISCOVERY_PORT)) #@brief Bindung an den Port 4000 und lauscht auf allen interfaces sei es lan , wlan oder localhost
    
-   
-    try:
-        udp_sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)  
-        udp_sock.bind(('', DISCOVERY_PORT))
-        #print(f"[Discovery] Lausche auf UDP-Port {DISCOVERY_PORT}...")
-    except OSError:
-        udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) #@brief erstelle einen internet udp socket
-        udp_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) #@brief erlaubt wiederverwendung von udp socket (auch belegt)
-        udp_sock.bind(('', DISCOVERY_PORT)) #@brief Bindung an den Port 4000 und lauscht auf allen interfaces sei es lan , wlan oder localhost
-        #print(f"[Discovery] Lausche auf UDP-Port {DISCOVERY_PORT}...")
+    # try:
+    #     udp_sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)  
+    #     udp_sock.bind(('', DISCOVERY_PORT))
+    #     #print(f"[Discovery] Lausche auf UDP-Port {DISCOVERY_PORT}...")
+    # except OSError:
+    #     udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) #@brief erstelle einen internet udp socket
+    #     udp_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) #@brief erlaubt wiederverwendung von udp socket (auch belegt)
+    #     udp_sock.bind(('', DISCOVERY_PORT)) #@brief Bindung an den Port 4000 und lauscht auf allen interfaces sei es lan , wlan oder localhost
+    #     #print(f"[Discovery] Lausche auf UDP-Port {DISCOVERY_PORT}...")
 
     Bytes = 1024  #@brief maximale groeße in bytes
     clients ={}
@@ -92,6 +94,8 @@ def discoveryloop(net_to_disc, disc_to_net,disc_to_ui,DISCOVERY_PORT):
                 handle = parts[1]                
                 port = parts[2]
                 ip = addr[0]              #@brief einzelnen teile der liste 'parts' werden gespeichert
+                if(handle in clients):
+                    handle = f"{handle}2"
 
                 clients[handle] = (ip, port) #@brief speicher die Sender informationen in 'clients'
                 
