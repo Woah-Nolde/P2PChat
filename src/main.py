@@ -11,7 +11,7 @@ def print_prompt():
     sys.stdout.write("\nCommand > ")
     sys.stdout.flush()
 
-def show_net_and_disc_messages(disc_to_ui,net_to_ui):
+def show_net_and_disc_messages(disc_to_ui,net_to_ui,my_handle):
     while True:
 
         if not net_to_ui.empty():
@@ -20,10 +20,10 @@ def show_net_and_disc_messages(disc_to_ui,net_to_ui):
                     global known_users 
                     known_users = msg["users"]
                     if not known_users:
-                        print("\nNiemand online!")
+                        print("Niemand online!")
                     else:
                         print(f"\nEntdeckte Nutzer: {', '.join(known_users.keys())}")
-                        print_prompt()
+                        
                         
             if msg["type"]== "MSG":
                 print("\n[Nachricht] von", msg["sender"], msg["text"], "\n> ", end="")
@@ -36,6 +36,8 @@ def show_net_and_disc_messages(disc_to_ui,net_to_ui):
                 print(msg["text"])
 
             if msg["type"]== "JOIN":
+                if(msg["handle"]==my_handle):
+                    continue
                 print("\n[Discovery]" , msg["handle"] ,"ist nun online!" ,msg["ip"] ,":",  msg["port"])
                 print_prompt()
             if msg["type"]== "LEAVE":
@@ -56,17 +58,102 @@ def send_join(handle, port):
             s.sendto(msg.encode(), ('255.255.255.255', 4000))
 
 
-def send_leave(handle):
+def send_leave(handle, whoisport):
     message = f"LEAVE {handle}"
     try:
         with socket.socket(socket.AF_INET6, socket.SOCK_DGRAM) as s:
-            s.sendto(message.encode(), ('ff02::1', 4000, 0, 0))
+            s.sendto(message.encode(), ('ff02::1', whoisport, 0, 0))
     except:
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
             s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-            s.sendto(message.encode(), ('255.255.255.255', 4000))
+            s.sendto(message.encode(), ('255.255.255.255', whoisport))
+
+def cli_loop(handle, whoisport,ui_to_net, net_to_ui,port,p1,p2):
+    
+    global known_users 
+    known_users= {}
+    print(f"hey {handle} du bist online")
+    print("Verfügbar: who, users, send, quit, name")
+    
+     
+
+    while True:
+        try:
+            command = input("Command > ").strip()
+            
+
+            if command == "who":
+                ui_to_net.put({"type": "WHO"})
+                time.sleep(0.3)
+                  
+            
+
+#ipv6 nicht nötig
+
+               
+                #@brief funktion wird ausgeführt und return in users gespeichert, damit wir später users wiederverwenden können
+                #@brief 'parse_knownusers' macht dann aus dem riesiegem f string 'users' eine handhabbares dict in java wie eine verschachtelte Hashmap
+                #@brief "Alice 192.168.5.5 5000, Bob 192.168.6.6 5001" --> "Alice": ("192.168.5.5", 5000),
+                
+
+            elif command == "users":
+                if not known_users:
+                    print("Keine bekannten Nutzer. Nutze 'who'.")
+                else:
+                    for h, (ip, p) in known_users.items():
+                        print(f"{h} → {ip}:{p}")
+
+            elif command.startswith("send"):
+                parts = command.split(" ", 2)
+                if len(parts) < 3:
+                    print("Verwendung: send <handle> <nachricht>")
+                    continue
+
+                target, message = parts[1], parts[2]
+                if target not in known_users:
+                    print("Unbekannter Nutzer. Nutze 'who'.")
+                    continue
+
+                ip, target_port = known_users[target]
+                ui_to_net.put({"type": "MSG", "text": message,"target_ip":ip,"target_port":target_port,"handle":handle})
+                #send_msg(ip, target_port, handle, message)
+            elif command.startswith("img:"):
+                parts = command.split(" ", 2)
+                text = input("Nachricht (oder img:<pfad>): ")
+                ip, p = known_users[target]
+
+                if command.startswith("img:"):
+                    pfad = text[4:].strip()
+                    #send_img(ip, p, pfad)
 
 
+            elif command == "quit":
+                send_leave(handle,whoisport)
+                print(f"Tschüss!")
+                p1.terminate()
+                p2.terminate()
+                exit()
+
+                
+                
+                break
+            elif command == "name":
+                #change_name()
+                print("geht noch nicht")
+                
+            else:
+                print("Unbekannter Befehl. Verfügbare: who, users, send, quit")
+
+        except KeyboardInterrupt:
+            print_prompt()
+            send_leave(handle,whoisport)
+            print("\n[Client] Abbruch mit Strg+C. LEAVE gesendet.")
+            #signal_handler(None,None)
+            p1.terminate()
+            p2.terminate()
+            exit()
+           
+            break  
 
 
 def parse_knownusers(response):
@@ -139,7 +226,7 @@ def main():
     disc_to_net = Queue()  # Discovery -> Netzwerk ("Alice ist online")
     disc_to_ui = Queue()
 
-    thread = threading.Thread(target=show_net_and_disc_messages, args=(disc_to_ui,net_to_ui))
+    thread = threading.Thread(target=show_net_and_disc_messages, args=(disc_to_ui,net_to_ui,handle))
     thread.daemon = True
     thread.start()
 
@@ -147,11 +234,10 @@ def main():
     p1.start()
     p2 = Process(target=discoveryloop, args=(net_to_disc, disc_to_net,disc_to_ui,whoisport),daemon=True)
     p2.start()
-
-
-
+    time.sleep(0.2) 
 
     send_join(handle, port)
+    cli_loop(handle, whoisport,ui_to_net, net_to_ui,port,p1,p2)
 
    
 

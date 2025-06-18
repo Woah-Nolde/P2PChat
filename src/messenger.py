@@ -40,7 +40,7 @@ def discover_users():
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
         s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         s.bind(('', 0))
-        s.settimeout(2)
+        s.settimeout(0.1)
         s.sendto("WHO".encode(), ('255.255.255.255', 4000))
 
         start_time = time.time()
@@ -90,11 +90,11 @@ def receive_messages(my_port,net_to_ui):
     try:
         sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
         sock.bind(('::', my_port))
-        print(f"[Empfänger] Lausche auf Port {my_port} (IPv6) für eingehende Nachrichten...")
+        #print(f"[Empfänger] Lausche auf Port {my_port} (IPv6) für eingehende Nachrichten...")
     except:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.bind(('', my_port))
-        print(f"[Empfänger] Lausche auf Port {my_port} (IPv4) für eingehende Nachrichten...")
+        #print(f"[Empfänger] Lausche auf Port {my_port} (IPv4) für eingehende Nachrichten...")
 
     while True:
         data, addr = sock.recvfrom(65507)

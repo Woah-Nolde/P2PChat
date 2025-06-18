@@ -67,12 +67,12 @@ def discoveryloop(net_to_disc, disc_to_net,disc_to_ui,DISCOVERY_PORT):
     try:
         udp_sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)  
         udp_sock.bind(('', DISCOVERY_PORT))
-        print(f"[Discovery] Lausche auf UDP-Port {DISCOVERY_PORT}...")
+        #print(f"[Discovery] Lausche auf UDP-Port {DISCOVERY_PORT}...")
     except OSError:
         udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) #@brief erstelle einen internet udp socket
         udp_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) #@brief erlaubt wiederverwendung von udp socket (auch belegt)
         udp_sock.bind(('', DISCOVERY_PORT)) #@brief Bindung an den Port 4000 und lauscht auf allen interfaces sei es lan , wlan oder localhost
-        print(f"[Discovery] Lausche auf UDP-Port {DISCOVERY_PORT}...")
+        #print(f"[Discovery] Lausche auf UDP-Port {DISCOVERY_PORT}...")
 
     Bytes = 1024  #@brief maximale groeße in bytes
     clients ={}
@@ -94,6 +94,7 @@ def discoveryloop(net_to_disc, disc_to_net,disc_to_ui,DISCOVERY_PORT):
                 ip = addr[0]              #@brief einzelnen teile der liste 'parts' werden gespeichert
 
                 clients[handle] = (ip, port) #@brief speicher die Sender informationen in 'clients'
+                
                 disc_to_ui.put({"type": "JOIN","handle": handle, "ip": ip, "port": port})
                 #print(f"[Discovery] {handle} ist online: {ip}:{port}")
             elif command == "WHO":
@@ -102,7 +103,7 @@ def discoveryloop(net_to_disc, disc_to_net,disc_to_ui,DISCOVERY_PORT):
                 #@bief die for each iteriert durch clients. Die funktion items() nimmt sich tupel raus, also Alice : (ip, port)
                 response = f"KNOWUSERS {user_list}"
                 udp_sock.sendto(response.encode(), addr)
-                print(f"[Discovery] Antwort gesendet an {addr}: {response}")
+                #print(f"[Discovery] Antwort gesendet an {addr}: {response}")
             elif command == "LEAVE" and len(parts) == 2: 
                 handle = parts[1]
                 if handle in clients:        #@brief lösche den teilnehmer aus der liste, falls er in der liste ist
