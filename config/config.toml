@@ -1,9 +1,12 @@
 [user]
-handle = "Alice"
+handle = "issa"
 autoreply = "Ich bin gerade nicht da."
 
 [network]
-port_range = [5000,5010]
+port_range = [
+    5000,
+    5010,
+]
 whoisport = 4000
 
 [storage]
