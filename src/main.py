@@ -1,8 +1,5 @@
 import socket
 import threading
-from messenger import send_msg
-from messenger import receive_messages
-from messenger import send_img
 from config_manager import load_config,save_config
 import time
 from multiprocessing import Process, Queue
@@ -155,36 +152,8 @@ def main():
 
 
     send_join(handle, port)
-    thread = threading.Thread(target=receive_messages, args=(port,))
-    thread.daemon = True
-    thread.start()
-    input("\n[ENTER] WHO senden...\n\n")
 
-    users = discover_users()
-    known_users = parse_knownusers(users)
-    #@brief funktion wird ausgeführt und return in users gespeichert, damit wir später users wiederverwenden können
-    #@brief 'parse_knownusers' macht dann aus dem riesiegem f string 'users' eine handhabbares dict in java wie eine verschachtelte Hashmap
-    #@brief "Alice 192.168.5.5 5000, Bob 192.168.6.6 5001" --> "Alice": ("192.168.5.5", 5000),
-    print("Entdeckte Nutzer:")
-    print(known_users)
-    try:
-        while True:
-            target = input("An wen senden? (Handle): ")
-            if target not in known_users:
-                print("Unbekannter Nutzer.")
-                continue
-            text = input("Nachricht (oder img:<pfad>): ")
-            ip, p = known_users[target]
-
-            if text.startswith("img:"):
-                pfad = text[4:].strip()
-                send_img(ip, p, pfad)  # NEU: Aufruf der Bildversand-Funktion
-            else:
-                send_msg(ip, p, handle, text)
-
-    except KeyboardInterrupt:
-        send_leave(handle)
-        print("\nProgramm beendet.")
+   
 
 
 
