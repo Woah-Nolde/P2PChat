@@ -7,7 +7,12 @@ from config_manager import load_config,save_config
 import time
 from multiprocessing import Process, Queue
 from discovery import discoveryloop
+from messenger import network_main
+import sys
 
+def print_prompt():
+    sys.stdout.write("\nCommand > ")
+    sys.stdout.flush()
 def send_join(handle, port):
     msg = f"JOIN {handle} {port}" 
     try:
