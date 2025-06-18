@@ -37,9 +37,19 @@ def discover_users(whoisport):
 
 
 
+def ensure_singleton(port,disc_to_ui):
+    """Stellt sicher, dass nur eine Instanz läuft"""
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        sock.bind(('', port))
+        sock.close()
+    except OSError:  
+        disc_to_ui.put({"type":"singleton", "text":f"\n[Discovery] Port {port} bereits belegt - Discovery läuft bereits"})
+        exit()
 
 
-def discoveryloop():
+def discoveryloop(net_to_disc, disc_to_net,disc_to_ui,DISCOVERY_PORT):
+    ensure_singleton(DISCOVERY_PORT,disc_to_ui)
     config = config_manager.load_config()
     
     #@brief Discovery Port 4000 ist eine vorgaben
