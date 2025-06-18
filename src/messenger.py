@@ -2,6 +2,7 @@
 # messenger.py
 import socket
 import os
+import threading
 
 # NEU: SLCP-Protokoll-Parser
 def parse_slcp(message):
@@ -13,9 +14,25 @@ def parse_slcp(message):
             return ("MSG", sender, text)
     return ("UNKNOWN", None, message)
 
+def network_main(ui_to_net, net_to_ui, net_to_disc, disc_to_net,port):
+    
+    thread = threading.Thread(target=receive_messages, args=(port,net_to_ui))
+    thread.daemon = True
+    thread.start()
+    while True:
+        if not disc_to_net.empty():
+            msg = disc_to_net.get()
+        if not ui_to_net.empty():
+            msg = ui_to_net.get()  # Holt die Nachricht aus der Queue
+        
+            if msg["type"] == "MSG":
+                send_msg(msg["target_ip"],msg["target_port"] ,msg["handle"],msg["text"],)
+            
+            if msg["type"] == "WHO":
+                response = discover_users()
+                net_to_ui.put({"type":"WHO_RESPONSE","users": response})
 
-
-def receive_messages(my_port):
+def receive_messages(my_port,net_to_ui):
     try:
         sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
         sock.bind(('::', my_port))
