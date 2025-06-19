@@ -131,27 +131,13 @@ def cli_loop(handle, whoisport, ui_to_net, net_to_ui, port, p1, p2):
                 print("Unbekannter Befehl. Verfügbare: who, users, send, quit, name")
 
         except KeyboardInterrupt:
-                    # Prozess beenden (falls vorhanden)
-            if  p1 in globals() and p1.is_alive():
-                p1.terminate()  # oder p1.kill() für sofortiges Beenden
-                p1.join()       # Warten, bis der Prozess wirklich beendet ist
+                   
             
-            # Verzögerung (falls nötig)
-            time.sleep(0.5)  # Kurze Wartezeit, damit alles sauber geschlossen wird
+             send_leave(handle, whoisport)
             
-            # LEAVE-Nachricht senden
-            send_leave(handle, whoisport)
-            
-            print("[Client] Programm wird beendet.")
-            sys.exit(0)  # Sauberes Exit
-
-            # time.sleep(2)
-            
-            # send_leave(handle, whoisport)
-            
-            # print("\n[Client] Abbruch mit Strg+C. LEAVE gesendet.")
-            # p1.terminate()
-            # exit()
+             print("\n[Client] Abbruch mit Strg+C. LEAVE gesendet.")
+             p1.terminate()
+             exit()
 
 def find_free_port(start_port, end_port):
     for port in range(start_port, end_port + 1):
