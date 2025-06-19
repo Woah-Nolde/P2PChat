@@ -4,7 +4,7 @@ from config_manager import load_config, save_config
 import time
 from multiprocessing import Process, Queue
 from discovery import discoveryloop
-from messenger import network_main
+from messenger import network_main,send_img
 import sys
 
 def print_prompt():
@@ -71,7 +71,7 @@ def cli_loop(handle, whoisport, ui_to_net, net_to_ui, port, p1, p2):
     global known_users
     known_users = {}
     print(f"hey {handle} du bist online")
-    print("Verfügbar: who, users, send, quit, name")
+    print("Verfügbar: who, users, send, img, quit, name")
 
     while True:
         try:
@@ -100,13 +100,21 @@ def cli_loop(handle, whoisport, ui_to_net, net_to_ui, port, p1, p2):
                 ip, target_port = known_users[target]
                 ui_to_net.put({"type": "MSG", "text": message, "target_ip": ip, "target_port": target_port, "handle": handle})
 
-            elif command.startswith("img:"):
+            elif command.startswith("img"):
                 parts = command.split(" ", 2)
-                text = input("Nachricht (oder img:<pfad>): ")
-                ip, p = known_users[target]
-                if command.startswith("img:"):
-                    pfad = text[4:].strip()
-                    # send_img(ip, p, pfad)
+                if len(parts) < 3:
+                    print("Verwendung: img <handle> <pfad_zum_bild>")
+                    continue
+                target, pfad = parts[1], parts[2]
+                if target not in known_users:
+                    print("Unbekannter Nutzer. Nutze 'who'.")
+                    continue
+                ip, port = known_users[target]
+                ui_to_net.put({"type": "IMG", "IP": ip, "PORT": port , "PFAD": pfad })
+                #send_img(ip, port, pfad)
+                #continue
+               
+
 
             elif command == "quit":
                 send_leave(handle, whoisport)

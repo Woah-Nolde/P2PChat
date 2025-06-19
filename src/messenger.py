@@ -27,6 +27,8 @@ def network_main(ui_to_net, net_to_ui, net_to_disc, disc_to_net,port):
             msg = disc_to_net.get()
         if not ui_to_net.empty():
             msg = ui_to_net.get()  # Holt die Nachricht aus der Queue
+            if msg["type"] == "IMG":
+                send_img(msg["IP"],msg["PORT"],msg["PFAD"] )
         
             if msg["type"] == "MSG":
                 send_msg(msg["target_ip"],msg["target_port"] ,msg["handle"],msg["text"],)
