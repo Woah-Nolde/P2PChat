@@ -23,9 +23,11 @@ def show_net_and_disc_messages(disc_to_ui, net_to_ui, my_handle):
                 else:
                     print(f"\nEntdeckte Nutzer: {', '.join(known_users.keys())}")
 
-            if msg["type"] == "MSG":
-                print("\n[Nachricht] von", msg["sender"], msg["text"], "\n> ", end="")
+            if msg["type"] == "recv_msg":
+                print("\n[Nachricht] von", msg["sender"], msg["text"], end="")
                 print_prompt()
+               
+                
 
         if not disc_to_ui.empty():
             msg = disc_to_ui.get()
@@ -42,18 +44,23 @@ def show_net_and_disc_messages(disc_to_ui, net_to_ui, my_handle):
 
 def send_join(handle, port):
     msg = f"JOIN {handle} {port}"
+    # with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+    #         s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    #         s.sendto(msg.encode(), ('255.255.255.255', 4000))
     try:
-        with socket.socket(socket.AF_INET6, socket.SOCK_DGRAM) as s:
-            s.sendto(msg.encode(), ('ff02::1', 4000, 0, 0))
+          with socket.socket(socket.AF_INET6, socket.SOCK_DGRAM) as s:
+             s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+             s.sendto(msg.encode(), ('ff02::1', 4000, 0, 0))
     except:
-        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-            s.sendto(msg.encode(), ('255.255.255.255', 4000))
+          with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+              s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+              s.sendto(msg.encode(), ('255.255.255.255', 4000))
 
 def send_leave(handle, whoisport):
     message = f"LEAVE {handle}"
     try:
         with socket.socket(socket.AF_INET6, socket.SOCK_DGRAM) as s:
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
             s.sendto(message.encode(), ('ff02::1', whoisport, 0, 0))
     except:
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
@@ -104,8 +111,9 @@ def cli_loop(handle, whoisport, ui_to_net, net_to_ui, port, p1, p2):
             elif command == "quit":
                 send_leave(handle, whoisport)
                 print("Tschüss!")
+                time.sleep(0.5)
                 p1.terminate()
-                p2.terminate()
+                
                 exit()
 
             elif command == "name":
@@ -123,12 +131,27 @@ def cli_loop(handle, whoisport, ui_to_net, net_to_ui, port, p1, p2):
                 print("Unbekannter Befehl. Verfügbare: who, users, send, quit, name")
 
         except KeyboardInterrupt:
-            print_prompt()
+                    # Prozess beenden (falls vorhanden)
+            if  p1 in globals() and p1.is_alive():
+                p1.terminate()  # oder p1.kill() für sofortiges Beenden
+                p1.join()       # Warten, bis der Prozess wirklich beendet ist
+            
+            # Verzögerung (falls nötig)
+            time.sleep(0.5)  # Kurze Wartezeit, damit alles sauber geschlossen wird
+            
+            # LEAVE-Nachricht senden
             send_leave(handle, whoisport)
-            print("\n[Client] Abbruch mit Strg+C. LEAVE gesendet.")
-            p1.terminate()
-            p2.terminate()
-            exit()
+            
+            print("[Client] Programm wird beendet.")
+            sys.exit(0)  # Sauberes Exit
+
+            # time.sleep(2)
+            
+            # send_leave(handle, whoisport)
+            
+            # print("\n[Client] Abbruch mit Strg+C. LEAVE gesendet.")
+            # p1.terminate()
+            # exit()
 
 def find_free_port(start_port, end_port):
     for port in range(start_port, end_port + 1):

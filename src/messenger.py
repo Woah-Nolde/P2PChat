@@ -129,7 +129,8 @@ def receive_messages(my_port,net_to_ui):
             message = data.decode()
             typ, sender, text = parse_slcp(message)  # NEU: Parser verwenden
             if typ == "MSG":
-                print(f"\n[Nachricht von {sender}] {text}\n> ", end="")
+                #print(f"\n[Nachricht von {sender}] {text}\n> ", end="")
+                net_to_ui.put({"type":"recv_msg","sender":sender,"text":text})
             else:
                 print(f"\n[Unbekanntes Format] {message}\n> ", end="")
 
