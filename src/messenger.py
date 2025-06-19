@@ -18,7 +18,8 @@ def parse_slcp(message):
 
 
 def network_main(ui_to_net, net_to_ui, net_to_disc, disc_to_net,port):
-    
+    threading.Thread(target=discovery_listener, args=(net_to_ui, port), daemon=True).start()
+
     thread = threading.Thread(target=receive_messages, args=(port,net_to_ui))
     thread.daemon = True
     thread.start()
@@ -136,6 +137,56 @@ def receive_messages(my_port,net_to_ui):
             else:
                 print(f"\n[Unbekanntes Format] {message}\n> ", end="")
 
+
+def discovery_listener(net_to_ui, my_port):
+    """
+    Lauscht auf Discovery-Broadcast-Nachrichten (z.B. USERJOIN, USERLEAVE) und leitet sie per IPC weiter.
+    """
+    DISCOVERY_EVENT_PORT = 4001 # Zusätzlich zu Port 4000 (JOIN/WHO/LEAVE)
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.bind(('', DISCOVERY_EVENT_PORT))
+
+    while True:
+        data, addr = sock.recvfrom(1024)
+        message = data.decode().strip()
+
+        if not message:
+            continue
+
+        parts = message.split()
+        if len(parts) < 2:
+            continue
+
+        cmd = parts[0]
+
+        # Beispiel: USERJOIN Alice 192.168.1.42 5000
+        if cmd == "USERJOIN" and len(parts) == 4:
+            handle, ip, port = parts[1], parts[2], parts[3]
+            if int(port) != my_port:  # Nur anzeigen, wenn es nicht die eigene Instanz ist
+                net_to_ui.put({"type": "JOIN", "handle": handle, "ip": ip, "port": port})
+
+        elif cmd == "USERLEAVE" and len(parts) == 2:
+            handle = parts[1]
+            net_to_ui.put({"type": "LEAVE", "handle": handle})
+
+        elif cmd == "HANDLE_UPDATE" and len(parts) == 3:
+            new_handle = parts[1]
+            port = parts[2]
+            net_to_ui.put({"type": "HANDLE_UPDATE", "new_handle": new_handle, "port": port})
+
+        elif cmd == "KNOWUSERS":
+            # Beispiel: KNOWUSERS Alice 192.168.1.2 5000, Bob 192.168.1.3 5001
+            known = {}
+            users_info = message[len("KNOWUSERS "):].split(", ")
+            for user in users_info:
+                try:
+                    h, ip, p = user.strip().split()
+                    known[h] = (ip, int(p))
+                except ValueError:
+                    continue
+            net_to_ui.put({"type": "WHO_RESPONSE", "users": known})
 
 
 def send_msg(target_ip, target_port, sender_handle, text):
