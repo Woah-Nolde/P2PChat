@@ -26,7 +26,7 @@ def show_config(config):
             print(f"  {key} = {val}")
 
 def parse_toml_type(value):
-    if value.lowe() in ["true",  "false"]:
+    if value.lower() in ["true",  "false"]:
         return value.lower() == "true"
     try:
         return int(value)
