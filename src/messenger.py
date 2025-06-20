@@ -172,8 +172,7 @@ def discovery_listener(net_to_ui, my_port):
         # Beispiel: USERJOIN Alice 192.168.1.42 5000
         if cmd == "USERJOIN" and len(parts) == 4:
             handle, ip, port = parts[1], parts[2], parts[3]
-            if int(port) != my_port:  # Nur anzeigen, wenn es nicht die eigene Instanz ist
-                net_to_ui.put({"type": "JOIN", "handle": handle, "ip": ip, "port": port})
+            net_to_ui.put({"type": "JOIN", "handle": handle, "ip": ip, "port": port})
 
         elif cmd == "USERLEAVE" and len(parts) == 2:
             handle = parts[1]

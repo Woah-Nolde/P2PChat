@@ -116,6 +116,7 @@ def discoveryloop(net_to_disc, disc_to_net,disc_to_ui,DISCOVERY_PORT):
                 with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
                     s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
                     s.sendto(event_msg.encode(), ('255.255.255.255', 4001))
+                
                 #disc_to_ui.put({"type": "JOIN","handle": handle, "ip": ip, "port": port})
                 # Rückmeldung an den Client, falls Name geändert wurde
                 #if handle != orig_handle:

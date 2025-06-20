@@ -16,6 +16,7 @@ def show_net_and_disc_messages(disc_to_ui, net_to_ui, my_handle, my_port):
     while True:
         if not net_to_ui.empty():
             msg = net_to_ui.get()
+            
             if msg["type"] == "HANDLE_UPDATE":
                 if int (msg["port"]) == my_port:
                     print(f"\n[Discovery] Dein Name ist bereits vergeben. Neuer Name: {msg['new_handle']}")
@@ -28,6 +29,7 @@ def show_net_and_disc_messages(disc_to_ui, net_to_ui, my_handle, my_port):
                 print("\n[Discovery]", msg["handle"], "hat den Chat verlassen.")
                 print_prompt()
             if msg["type"] == "JOIN":
+  
                 if msg["handle"] == handle:
                     continue
                 print("\n[Discovery]", msg["handle"], "ist nun online!", msg["ip"], ":", msg["port"])
