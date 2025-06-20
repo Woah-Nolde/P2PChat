@@ -1,4 +1,3 @@
-
 # messenger.py
 import socket
 import os
@@ -30,7 +29,7 @@ def network_main(ui_to_net, net_to_ui, net_to_disc, disc_to_net,port):
         if not ui_to_net.empty():
             msg = ui_to_net.get()  # Holt die Nachricht aus der Queue
             if msg["type"] == "IMG":
-                send_img(msg["IP"],msg["PORT"],msg["PFAD"] )
+                send_img(msg["IP"], msg["PORT"], msg["PFAD"], msg.get("HANDLE"))
         
             if msg["type"] == "MSG":
                 send_msg(msg["target_ip"],msg["target_port"] ,msg["handle"],msg["text"],)
@@ -89,8 +88,11 @@ def parse_knownusers(response):
             continue     #@brief falls das Format fehlerhaft ist
 
     return known
-
-def receive_messages(my_port,net_to_ui):
+    # Das Bild wird als Binärdatei gespeichert (z.B. empfangen_Alice_1718031234.bin).
+    # Texteditoren können Binärdateien nicht anzeigen, daher kommt die Meldung.
+    # Um das Bild zu sehen, öffne die Datei mit einem Bildbetrachter oder benenne sie ggf. in .jpg/.png um,
+    # falls du weißt, welches Format gesendet wurde.
+def receive_messages(my_port, net_to_ui):
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.bind(('', my_port))
@@ -98,52 +100,42 @@ def receive_messages(my_port,net_to_ui):
         print(f"[Fehler] Port {my_port} ist bereits belegt. Bitte einen anderen Port wählen.")
         return
 
-    # try:
-    #     sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
-    #     sock.bind(('::', my_port))
-    #     #print(f"[Empfänger] Lausche auf Port {my_port} (IPv6) für eingehende Nachrichten...")
-    # except:
-    #     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    #     sock.bind(('', my_port))
-    #     #print(f"[Empfänger] Lausche auf Port {my_port} (IPv4) für eingehende Nachrichten...")
+    expected_img = None  # (handle, size)
+    img_data = b""
+    img_filename = ""
 
     while True:
         data, addr = sock.recvfrom(65507)
+        try:
+            text = data.decode()
+            if text.startswith("IMG "):
+                # Header empfangen
+                parts = text.split()
+                if len(parts) == 3:
+                    handle, size = parts[1], int(parts[2])
+                    expected_img = (handle, size)
+                    img_data = b""
+                    img_filename = f"empfangen_{handle}_{int(time.time())}.jpg"
+                    continue
+            # Sonstige Textnachrichten
+        except UnicodeDecodeError:
+            # Binärdaten empfangen
+            if expected_img:
+                img_data += data
+                if len(img_data) >= expected_img[1]:
+                    with open(img_filename, "wb") as f:
+                        f.write(img_data[:expected_img[1]])
+                    print(f"[Empfänger] Bild empfangen von {addr} → gespeichert als {img_filename}")
+                    expected_img = None
+                    img_data = b""
+            continue
 
-        if data.startswith(b"IMG:"):
-            parts = data.split(b":", 3)
-
-            if len(parts) != 4:
-                print(f"[Fehler] Ungültiges Bildformat von {addr}")
-                continue
-
-            filename = os.path.basename(parts[1].decode())
-
-            try:
-                size = int(parts[2].decode())
-            except ValueError:
-                print(f"[Fehler] Ungültiger Size-Header bei empfangener IMG-Nachricht.")
-                continue
-
-            image_data = parts[3]
-
-            if len(image_data) != size:
-                print(f"[Fehler] Bild unvollständig: erwartet {size} Bytes, empfangen {len(image_data)} Bytes.")
-                continue  #  unvollständiges Bild nicht speichern
-
-            with open("empfangen_" + filename, "wb") as f:
-                f.write(image_data)
-
-            print(f"[Empfänger] Bild empfangen von {addr} → gespeichert als empfangen_{filename}")
-
+        # ...vorheriger Code für normale Nachrichten...
+        typ, sender, text = parse_slcp(data.decode(errors="ignore"))
+        if typ == "MSG":
+            net_to_ui.put({"type": "recv_msg", "sender": sender, "text": text})
         else:
-            message = data.decode()
-            typ, sender, text = parse_slcp(message)  # NEU: Parser verwenden
-            if typ == "MSG":
-                #print(f"\n[Nachricht von {sender}] {text}\n> ", end="")
-                net_to_ui.put({"type":"recv_msg","sender":sender,"text":text})
-            else:
-                print(f"\n[Unbekanntes Format] {message}\n> ", end="")
+            print(f"\n[Unbekanntes Format] {data.decode(errors='ignore')}\n> ", end="")
 
 
 def discovery_listener(net_to_ui, my_port):
@@ -208,26 +200,23 @@ def send_msg(target_ip, target_port, sender_handle, text):
             s.sendto(msg.encode(), (target_ip, target_port))
 
 
-def send_img(target_ip, target_port, filename):
-
+def send_img(target_ip, target_port, filename, handle=None):
     if not os.path.exists(filename):
         print(f"[Fehler] Bilddatei {filename} nicht gefunden.")
         return
-    
+
     with open(filename, "rb") as f:
         image_data = f.read()
 
     size = len(image_data)
-    message = f"IMG:{filename}:{size}:".encode() + image_data
-
-    if len(message) > 65507:
-        print("[Fehler] Bild zu groß für ein UDP-Paket.")
-        return
-
+    # 1. Header senden
+    header = f"IMG {handle if handle else 'unknown'} {size}".encode()
     if ":" in target_ip:
         with socket.socket(socket.AF_INET6, socket.SOCK_DGRAM) as s:
-            s.sendto(message, (target_ip, target_port, 0, 0))
+            s.sendto(header, (target_ip, target_port, 0, 0))
+            s.sendto(image_data, (target_ip, target_port, 0, 0))
     else:
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-            s.sendto(message, (target_ip, target_port))
+            s.sendto(header, (target_ip, target_port))
+            s.sendto(image_data, (target_ip, target_port))
     print(f"[Sender] Bild {filename} an {target_ip}:{target_port} gesendet.")

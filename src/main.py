@@ -123,7 +123,7 @@ def cli_loop(whoisport, ui_to_net, net_to_ui, port, p1, p2):
                     print("Unbekannter Nutzer. Nutze 'who'.")
                     continue
                 ip, port = known_users[target]
-                ui_to_net.put({"type": "IMG", "IP": ip, "PORT": port , "PFAD": pfad })
+                ui_to_net.put({"type": "IMG", "IP": ip, "PORT": port, "PFAD": pfad, "HANDLE": handle})
                 #send_img(ip, port, pfad)
                 #continue
                
