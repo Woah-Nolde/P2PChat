@@ -108,6 +108,14 @@ def receive_messages(my_port, net_to_ui):
         data, addr = sock.recvfrom(65507)
         try:
             text = data.decode()
+
+            message = data.decode().strip()
+            parts = message.split()
+            if not parts:  #@brief falls die nachricht leer ist,
+                continue
+            command = parts[0] 
+            if command == "LEAVE" and len(parts) == 2:
+                net_to_ui.put({"type": "LEAVE", "handle": parts[1]})
             if text.startswith("IMG "):
                 # Header empfangen
                 parts = text.split()

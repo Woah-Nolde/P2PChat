@@ -70,6 +70,11 @@ def send_leave(handle, whoisport):
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
         s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         s.sendto(message.encode(), ('255.255.255.255', whoisport))
+    
+
+    for h, (ip, port) in known_users.items():
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.sendto(message.encode(), (ip, port))
     # try:
     #     with socket.socket(socket.AF_INET6, socket.SOCK_DGRAM) as s:
     #         s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
