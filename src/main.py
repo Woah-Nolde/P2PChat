@@ -149,7 +149,7 @@ def cli_loop(whoisport, ui_to_net, net_to_ui, port, p1, p2):
                 
 
             else:
-                print("Unbekannter Befehl. Verfügbare: who, users, send, quit, name")
+                print("Unbekannter Befehl. Verfügbare: who, users, send, img, quit, name")
 
         except KeyboardInterrupt:
                    
