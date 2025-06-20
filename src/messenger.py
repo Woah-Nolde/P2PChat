@@ -155,10 +155,18 @@ def discovery_listener(net_to_ui, my_port):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.bind(('', DISCOVERY_EVENT_PORT))
+    dataold = None
 
     while True:
         data, addr = sock.recvfrom(1024)
         message = data.decode().strip()
+
+
+          
+        if message == dataold:
+            continue # Wenn die Daten gleich geblieben sind, überspringen damit keine Dopplungen entstehen
+        # Speichern der alten Nachricht, um Dopplungen zu vermeiden  
+        dataold = message    
 
         if not message:
             continue
