@@ -1,13 +1,13 @@
+# Benutzereinstellungen
 [user]
-handle = "Alice"
-autoreply = "Ich bin gerade nicht da."
+handle = "Alice"     # Anzeigename im Chat
+autoreply = "Ich bin gerade nicht da."       # Automatische Antwort im Abwesenheitsmodus
 
+# Netzwerkeinstellungen
 [network]
-port_range = [
-    5000,
-    5010,
-]
-whoisport = 4000
+port_range = [5000, 5010]  # Bereich für dynamische Portvergabe
+whoisport = 4000  # Fester Port für den Discovery-Dienst
 
+# Speichereinstellungen
 [storage]
-imagepath = "received_images"
+imagepath = "received_images"  # Ordner für empfangene Bilder
