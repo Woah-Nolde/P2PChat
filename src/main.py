@@ -11,6 +11,16 @@ def print_prompt():
     sys.stdout.write("\nCommand > ")
     sys.stdout.flush()
 
+def get_own_ip():
+    """Gibt die eigene IP-Adresse zurück, wie sie im LAN verwendet wird."""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            # Verbindung zu externem Host aufbauen (wird nicht wirklich gesendet)
+            s.connect(("8.8.8.8", 80))  # Google DNS – sicher erreichbar
+            return s.getsockname()[0]
+    except Exception:
+        return "127.0.0.1"  # Fallback
+    
 def show_net_and_disc_messages(disc_to_ui, net_to_ui, my_handle, my_port):
     global handle  # <-- hinzufügen!
     while True:
@@ -30,7 +40,7 @@ def show_net_and_disc_messages(disc_to_ui, net_to_ui, my_handle, my_port):
                 print_prompt()
             if msg["type"] == "JOIN":
   
-                if msg["handle"] == handle:
+                if msg["handle"] == handle and get_own_ip() == msg["ip"] :
                     continue
                 print("\n[Discovery]", msg["handle"], "ist nun online!", msg["ip"], ":", msg["port"])
                 print_prompt()

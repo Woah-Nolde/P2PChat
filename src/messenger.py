@@ -178,10 +178,12 @@ def discovery_listener(net_to_ui, my_port):
             handle = parts[1]
             net_to_ui.put({"type": "LEAVE", "handle": handle})
 
-        elif cmd == "HANDLE_UPDATE" and len(parts) == 3:
+        elif cmd == "HANDLE_UPDATE" and len(parts) == 4:
             new_handle = parts[1]
             port = parts[2]
-            net_to_ui.put({"type": "HANDLE_UPDATE", "new_handle": new_handle, "port": port})
+            ip = parts[3]
+            print("bishier")
+            net_to_ui.put({"type": "HANDLE_UPDATE", "new_handle": new_handle, "port": port, "ip":ip})
 
         elif cmd == "KNOWUSERS":
             # Beispiel: KNOWUSERS Alice 192.168.1.2 5000, Bob 192.168.1.3 5001

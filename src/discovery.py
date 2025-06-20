@@ -104,7 +104,7 @@ def discoveryloop(net_to_disc, disc_to_net,disc_to_ui,DISCOVERY_PORT):
                         num = int(handle[-1]) + 1
                         handle = f"{orig_handle}{num}"
                 if handle != orig_handle:    
-                    event_msg = f"HANDLE_UPDATE {handle} {port}"
+                    event_msg = f"HANDLE_UPDATE{handle}{port}{ip}"
                     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
                         s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
                         s.sendto(event_msg.encode(), ('255.255.255.255', 4001))
