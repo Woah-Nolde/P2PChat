@@ -18,11 +18,12 @@ def parse_slcp(message):
 
 
 def network_main(ui_to_net, net_to_ui, net_to_disc, disc_to_net,port):
-    threading.Thread(target=discovery_listener, args=(net_to_ui, port), daemon=True).start()
+    
 
     thread = threading.Thread(target=receive_messages, args=(port,net_to_ui))
     thread.daemon = True
     thread.start()
+    threading.Thread(target=discovery_listener, args=(net_to_ui, port), daemon=True).start()
     while True:
         if not disc_to_net.empty():
             msg = disc_to_net.get()
@@ -91,13 +92,20 @@ def parse_knownusers(response):
 
 def receive_messages(my_port,net_to_ui):
     try:
-        sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
-        sock.bind(('::', my_port))
-        #print(f"[Empfänger] Lausche auf Port {my_port} (IPv6) für eingehende Nachrichten...")
-    except:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.bind(('', my_port))
-        #print(f"[Empfänger] Lausche auf Port {my_port} (IPv4) für eingehende Nachrichten...")
+    except OSError:
+        print(f"[Fehler] Port {my_port} ist bereits belegt. Bitte einen anderen Port wählen.")
+        return
+
+    # try:
+    #     sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+    #     sock.bind(('::', my_port))
+    #     #print(f"[Empfänger] Lausche auf Port {my_port} (IPv6) für eingehende Nachrichten...")
+    # except:
+    #     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    #     sock.bind(('', my_port))
+    #     #print(f"[Empfänger] Lausche auf Port {my_port} (IPv4) für eingehende Nachrichten...")
 
     while True:
         data, addr = sock.recvfrom(65507)
