@@ -10,4 +10,4 @@ port_range = [
 whoisport = 4000
 
 [storage]
-imagepath = "reveived_images"
+imagepath = "received_images"
