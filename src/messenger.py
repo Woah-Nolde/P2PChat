@@ -15,6 +15,17 @@ def parse_slcp(message):   # @param message Die empfangene Nachricht (z.B. "MSG 
             sender = parts[0]
             text = parts[1].replace("%20", " ")  # @note Entfernt %20-Maskierung in Textnachrichten
             return ("MSG", sender, text)
+    elif message.startswith("LEAVE"):
+        parts = message.split()
+        if len(parts) == 2:
+            handle = parts[1]
+            return ("LEAVE", handle, None)
+    elif message.startswith("IMG"):
+        parts = message.split()
+        if len(parts) == 3:
+            handle = parts[1]
+            size = parts[2]
+            return ("IMG", handle, size)
     return ("UNKNOWN", None, message)
 
 
@@ -153,6 +164,7 @@ def receive_messages(my_port, net_to_ui):
             command = parts[0] 
             if command == "LEAVE" and len(parts) == 2:
                 net_to_ui.put({"type": "LEAVE", "handle": parts[1]})
+                continue
             if text.startswith("IMG "):
                 # Header empfangen
                 parts = text.split()
