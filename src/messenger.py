@@ -1,26 +1,34 @@
-# messenger.py
+# @brief Implementierung der Netzwerkkommunikation für P2P-Chat
+# @details Handhabt alle SLCP-Protokolloperationen (Nachrichten, Bilder, Discovery)#
+
 import socket
 import os
 import threading
 import time
 import config_manager
 
-# NEU: SLCP-Protokoll-Parser
-def parse_slcp(message):
+## @brief SLCP-Nachricht wird geparst
+def parse_slcp(message):   # @param message Die empfangene Nachricht (z.B. "MSG Alice Hallo")
     if message.startswith("MSG"):
         parts = message[4:].split(" ", 1)
         if len(parts) == 2:
             sender = parts[0]
-            text = parts[1].replace("%20", " ")  # Maskierung auflösen
+            text = parts[1].replace("%20", " ")  # @note Entfernt %20-Maskierung in Textnachrichten
             return ("MSG", sender, text)
     return ("UNKNOWN", None, message)
 
 
 
+## @brief Hauptfunktion für die Netzwerkkommunikation
 def network_main(ui_to_net, net_to_ui, net_to_disc, disc_to_net,port):
+# @param ui_to_net Queue für UI->Netzwerk-Nachrichten
+# @param net_to_ui Queue für Netzwerk->UI-Nachrichten
+# @param net_to_disc Queue für Netzwerk->Discovery
+# @param disc_to_net Queue für Discovery->Netzwerk
+# @param port Lokaler Port für den Empfang
     global abwesend
     
-
+# @details Startet Threads für Nachrichtenempfang und Discovery
     thread = threading.Thread(target=receive_messages, args=(port,net_to_ui))
     thread.daemon = True
     thread.start()
@@ -44,6 +52,8 @@ def network_main(ui_to_net, net_to_ui, net_to_disc, disc_to_net,port):
                 response = discover_users()
                 net_to_ui.put({"type":"WHO_RESPONSE","users": response})
 
+
+## @brief Ermittelt aktive Nutzer im Netzwerk
 def discover_users():
     responses = set()
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
@@ -59,7 +69,9 @@ def discover_users():
                 responses.add(data.decode())  # Deduplizierung
             except socket.timeout:
                 break
-    
+    # @return dict Bekannte Nutzer {handle: (ip, port)}
+
+
     # Alle Antworten mergen
     merged_users = {}
     for response in responses:
@@ -98,7 +110,12 @@ def parse_knownusers(response):
     # Texteditoren können Binärdateien nicht anzeigen, daher kommt die Meldung.
     # Um das Bild zu sehen, öffne die Datei mit einem Bildbetrachter oder benenne sie ggf. in .jpg/.png um,
     # falls du weißt, welches Format gesendet wurde.
+
+
+    ## @brief Empfängt Nachrichten auf einem Port
 def receive_messages(my_port, net_to_ui):
+# @param my_port Portnummer zum Lauschen
+# @param net_to_ui Queue für Netzwerk->UI-Kommunikation
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.bind(('', my_port))
@@ -225,20 +242,32 @@ def discovery_listener(net_to_ui, my_port):
             net_to_ui.put({"type": "WHO_RESPONSE", "users": known})
 
 
+
+## @brief Sendet Textnachricht nach SLCP
 def send_msg(target_ip, target_port, target_handle, text):
+# @param target_ip Ziel-IP (IPv4/IPv6)
+# @param target_port Ziel-Port
+# @param target_handle Empfänger-Handle
+# @param text Nachrichteninhalt
     text_masked = text.replace(" ", "%20")
     msg = f"MSG {target_handle} {text_masked}"
     if len(msg) > 512:
-        raise ValueError("Nachricht zu lang, maximal 512 Zeichen erlaubt.") # Maximale Länge von Nachrichten
+        raise ValueError("Nachricht zu lang, maximal 512 Zeichen erlaubt.") # @exception ValueError Bei >512 Zeichen
     if ":" in target_ip:
-        with socket.socket(socket.AF_INET6, socket.SOCK_DGRAM) as s:
+        with socket.socket(socket.AF_INET6, socket.SOCK_DGRAM) as s:  # @brief IPv6-Socket
             s.sendto(msg.encode(), (target_ip, target_port, 0, 0))
     else:
-        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:  # @brief IPv4-Socket
             s.sendto(msg.encode(), (target_ip, target_port))
 
 
+
+## @brief Sendet Bilddatei
 def send_img(target_ip, target_port, filename, handle=None):
+# @param target_ip Ziel-IP
+# @param target_port Ziel-Port
+# @param filename Pfad zur Bilddatei
+# @param handle Optionaler Absender-Handle
     if not os.path.exists(filename):
         print(f"[Fehler] Bilddatei {filename} nicht gefunden.")
         return
@@ -248,13 +277,13 @@ def send_img(target_ip, target_port, filename, handle=None):
 
     size = len(image_data)
     # 1. Header senden
-    header = f"IMG {handle if handle else 'unknown'} {size}".encode()
+    header = f"IMG {handle if handle else 'unknown'} {size}".encode() # @brief Header mit Handle und Größe der Bilddaten
     if ":" in target_ip:
-        with socket.socket(socket.AF_INET6, socket.SOCK_DGRAM) as s:
+        with socket.socket(socket.AF_INET6, socket.SOCK_DGRAM) as s: #@brief IPv6-Socket
             s.sendto(header, (target_ip, target_port, 0, 0))
             s.sendto(image_data, (target_ip, target_port, 0, 0))
     else:
-        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:  #@brief IPv4-Socket
             s.sendto(header, (target_ip, target_port))
             s.sendto(image_data, (target_ip, target_port))
     print(f"[Sender] Bild {filename} an {target_ip}:{target_port} gesendet.")
