@@ -54,21 +54,23 @@ def parse_toml_type(value):  # @param value aus TOML
 
 
 ## @brief Konfigurationsbearbeitung        
-def edit_config(): 
-    config = load_config() 
-    show_config(config)  # @return Konfiguration als Dictionary
-    sections = {
-        '1': ('user', 'Benutzereinstellungen'),
-        '2': ('network', 'Netzwerkeinstellungen'),
-        '3': ('storage', 'Speichereinstellungen')
-    }
-
+def edit_config():
+    config = load_config()
+    
     while True:
+        show_config(config)  # Aktuelle Konfiguration immer anzeigen
+        sections = {
+            '1': ('user', 'Benutzereinstellungen'),
+            '2': ('network', 'Netzwerkeinstellungen'),
+            '3': ('storage', 'Speichereinstellungen')
+        }
+
         print("\nKonfiguration bearbeiten:")
         print("1. Benutzereinstellungen (Handle, Autoreply)")
         print("2. Netzwerkeinstellungen (Ports, Discovery)")
         print("3. Speichereinstellungen (Bildpfad)")
-        print("0. Zurück")
+        print("s. Speichern und zurück")
+        print("0. Zurück ohne Speichern")
 
         # @details
 # Bietet eine menügeführte Oberfläche zur Bearbeitung aller Konfigurationsparameter:
@@ -76,32 +78,53 @@ def edit_config():
 # - Netzwerkeinstellungen (Portbereich, Discovery-Port)
 # - Speichereinstellungen (Bildpfad)
 
-        choice = input("Auswahl: ").strip()
+        choice = input("Auswahl: ").strip().lower()
+
         if choice == '0':
+            return config  # Ohne Speichern zurückgeben
+            
+        elif choice == 's':
+            if save_config(config):
+                print("Konfiguration erfolgreich gespeichert!")
             return config
 
-        if choice in sections:
+        elif choice in sections:
             section, desc = sections[choice]
             print(f"\n{desc}:")
-            for key in config.get(section, {}):
-                print(f"  {key}: {config[section][key]}")
             
-            key = input("\nZu ändernder Schlüssel (leer=lassen): ").strip()
+            # Alle Schlüssel der Sektion anzeigen
+            for key in config.get(section, {}):
+                current_value = config[section][key]
+                print(f"  {key}: {current_value} ({type(current_value).__name__})")
+            
+            key = input("\nZu ändernder Schlüssel (leer=Abbrechen): ").strip()
+            
             if key and key in config[section]:
                 new_value = input(f"Neuer Wert für {key} ({type(config[section][key]).__name__}): ").strip()
+                
                 try:
-                    # Automatische Typkonvertierung
-                    if isinstance(config[section][key], bool):
-                        config[section][key] = new_value.lower() in ('true', '1', 'ja')
-                    elif isinstance(config[section][key], int):
+                    # Typkonvertierung basierend auf aktuellem Typ
+                    old_value = config[section][key]
+                    if isinstance(old_value, bool):
+                        config[section][key] = new_value.lower() in ('true', '1', 'ja', 'yes')
+                    elif isinstance(old_value, int):
                         config[section][key] = int(new_value)
+                    elif isinstance(old_value, float):
+                        config[section][key] = float(new_value)
                     else:
                         config[section][key] = new_value
-                except ValueError:
-                    print("Fehler: Ungültiger Wert!")
+                        
+                    # Sofortiges Speichern nach jeder Änderung
+                    if save_config(config):
+                        print("Änderung gespeichert!")
+                    else:
+                        print("Warnung: Konfiguration konnte nicht gespeichert werden!")
+                        
+                except ValueError as e:
+                    print(f"Fehler: Ungültiger Wert - {str(e)}")
+                    print(f"Erwarteter Typ: {type(config[section][key]).__name__}")
         else:
             print("Ungültige Auswahl!")
-    save_config(config)  # Speichert die Änderungen in der Konfigurationsdatei
 # @exception ValueError Bei ungültigen Typkonvertierungen
 # @note Für Netzwerkänderungen ist ein Neustart erforderlich
 

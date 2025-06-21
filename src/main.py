@@ -217,31 +217,50 @@ def cli_loop(whoisport, ui_to_net, net_to_ui, port, p1, p2):
                 #continue
 
             elif command.startswith("config"):
-                config = load_config()
-                print("Aktuelle Konfiguration:")
-                print(f"Handle: {config['user']['handle']}")
-                print(f"Port-Bereich: {config['network']['port_range']}")
-                print(f"Discovery-Port: {config['network']['whoisport']}")
-                print("Änderungen vornehmen? (y/n)")
-                if input().strip().lower() == "y":
-                    new_handle = input("Neuer Handle: ").strip()
-                    new_port_range = input("Neuer Port-Bereich (z.B. 5000-6000): ").strip()
-                    new_whoisport = input("Neuer Discovery-Port (z.B. 4000): ").strip()
-                    try:
-                        start_port, end_port = map(int, new_port_range.split("-"))
-                        config["user"]["handle"] = new_handle
-                        config["network"]["port_range"] = [start_port, end_port]
-                        config["network"]["whoisport"] = int(new_whoisport)
-                        save_config(config)
-                        handle = new_handle  # Laufzeit-Änderung übernehmen
-                        send_leave(handle, whoisport)
+                from config_manager import edit_config, show_config, load_config
+                
+                parts = command.split()
+                if len(parts) == 1:
+                    # Nur 'config' eingegeben - Hilfe anzeigen
+                    print("""
+Config-Befehle:
+  config show       - Aktuelle Konfiguration anzeigen
+  config edit       - Interaktive Konfigurationsbearbeitung
+  config reload     - Konfiguration neu laden
+                    """)
+                    
+                elif parts[1] == "show":
+                    # Konfiguration anzeigen
+                    config = load_config()
+                    print("\nAktuelle Konfiguration:")
+                    for section in config:
+                        print(f"[{section}]")
+                        for key, value in config[section].items():
+                            print(f"  {key} = {value}")
+                    print()
+                
+                elif parts[1] == "edit":
+                    # Interaktive Bearbeitung
+                    old_handle = handle
+                    config = edit_config()
+                    handle = config["user"]["handle"]
+                    
+                    if old_handle != handle:
+                        send_leave(old_handle, whoisport)
                         send_join(handle, port)
-                        print("Konfiguration aktualisiert.")
-                    except ValueError:
-                        print("Ungültige Eingabe. Konfiguration nicht geändert.")
-                 
-                 
-            
+                        print(f"\n[Info] Handle wurde von '{old_handle}' zu '{handle}' geändert")
+                    print("[Info] Konfiguration aktualisiert. ManNetzwerkänderungen benötigen Neustart.")
+                
+                elif parts[1] == "reload":
+                    # Konfiguration neu laden
+                    config = load_config()
+                    handle = config["user"]["handle"]
+                    print("[Info] Konfiguration neu geladen. Aktueller Handle:", handle)
+                
+                else:
+                    print("Ungültiger config-Befehl. Verfügbar: show, edit, reload, set")
+                
+                continue
 
 
             elif command == "quit":
