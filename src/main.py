@@ -62,6 +62,8 @@ def show_net_and_disc_messages(disc_to_ui, net_to_ui, my_handle, my_port, ui_to_
                 if msg["handle"] == handle:
                     continue
                 print("\n[Discovery]", msg["handle"], "hat den Chat verlassen.")
+                if handle in known_users:        #@brief lösche den teilnehmer aus der liste, falls er in der liste ist
+                    del known_users[handle]
                 print_prompt()
             if msg["type"] == "JOIN":
   
