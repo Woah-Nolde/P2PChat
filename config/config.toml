@@ -1,13 +1,13 @@
-# Benutzereinstellungen
-[user]
-handle = "Alice"     # Anzeigename im Chat
-autoreply = "Ich bin gerade nicht da."       # Automatische Antwort im Abwesenheitsmodus
+# @brief Konfigurationsdatei für den P2P-Chat
 
-# Netzwerkeinstellungen
-[network]
-port_range = [5000, 5010]  # Bereich für dynamische Portvergabe
-whoisport = 4000  # Fester Port für den Discovery-Dienst
 
-# Speichereinstellungen
-[storage]
-imagepath = "received_images"  # Ordner für empfangene Bilder
+[user]               # @section user Benutzereinstellungen
+handle = "Alice"     # @param handle Anzeigename im Chat
+autoreply = "Ich bin gerade nicht da."       # @param autoreply Automatische Antwort im Abwesenheitsmodus
+
+[network]            # @section network Netzwerkeinstellungen
+port_range = [5000, 5010]  # Bereich für dynamische Portvergabe   # @param port_range Bereich für dynamische Portvergabe
+whoisport = 4000  # Fester Port für den Discovery-Dienst          # @param whoisport Fester Port für den Discovery-Dienst
+
+[storage]       # @section storage Speichereinstellungen
+imagepath = "received_images"  # @param imagepath Ordner für empfangene Bilder
