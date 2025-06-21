@@ -8,7 +8,7 @@ import os
 import socket
 
 known_users = {}
-conf_file = "config.toml"
+conf_file = "config/config.toml"
 
 ## @brief Lädt die Konfiguration aus einer TOML-Datei
 def load_config(path=conf_file):   # @param path Pfad zur Konfigurationsdatei
