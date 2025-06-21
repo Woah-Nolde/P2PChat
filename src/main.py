@@ -34,7 +34,7 @@ def show_net_and_disc_messages(disc_to_ui, net_to_ui, my_handle, my_port, ui_to_
                         print("\nUnbekannter Nutzer hat geschrieben. Autoreply kann nicht gesendet werden.")
                         continue
                     ip, target_port = known_users[msg["sender"]]
-                    ui_to_net.put({"type": "MSG", "text": msg["text"], "target_ip": ip, "target_port": target_port, "handle": msg["sender"]})
+                    ui_to_net.put({"type": "MSG", "text": msg["text"], "target_ip": ip, "target_port": target_port, "handle":handle})
                     
                         
             
@@ -55,8 +55,7 @@ def show_net_and_disc_messages(disc_to_ui, net_to_ui, my_handle, my_port, ui_to_
                     continue
                 print("\n[Discovery]", msg["handle"], "ist nun online!", msg["ip"], ":", msg["port"])
                 print_prompt()
-            if msg["type"] == "WHO_RESPONSE":
-                
+            if msg["type"] == "WHO_RESPONSE":        
                 known_users = msg["users"]
                 if not known_users or (len(known_users) == 1 and my_handle in known_users):
                     print("Niemand online, außer dir!")
@@ -64,7 +63,12 @@ def show_net_and_disc_messages(disc_to_ui, net_to_ui, my_handle, my_port, ui_to_
                     print(f"\nEntdeckte Nutzer: {', '.join(known_users.keys())}")
 
             if msg["type"] == "recv_msg":
-                print("\n[Nachricht] von", msg["sender"], msg["text"], end="")
+                sender = msg["sender"]
+                text = msg["text"]
+                print(f"\n[Nachricht] von {sender} {text}", end="")
+                if abwesend == True:
+                    print("\n[Abwesend-Modus] Du bist abwesend.\nAbwesend-Modus verlassen? klick [ENTER]: ")
+                    continue
                 print_prompt()
                
                 
@@ -111,14 +115,17 @@ def cli_loop(whoisport, ui_to_net, net_to_ui, port, p1, p2):
     global handle  # <-- hinzufügen!
     global abwesend
     known_users = {}
-    abwesend = False
+    
 
     print(f"hey {handle} du bist online")
     print("Verfügbar: who, users, send, img, quit, name, abwesend")
 
     while True:
         try:
-            command = input("Command > ").strip()
+            if not abwesend:
+                command = input("Command > ").strip()
+            elif abwesend:
+                command = "abwesend"
 
             if command == "abwesend":
                 abwesend = True
@@ -215,6 +222,8 @@ def find_free_port(start_port, end_port):
     raise RuntimeError(f"Kein freier UDP-Port im Bereich {start_port}-{end_port} gefunden!")
 
 def main():
+    global abwesend
+    abwesend = False
     global handle  # <-- hinzufügen!
     config = load_config()
     handle = config["user"]["handle"]

@@ -10,4 +10,4 @@ port_range = [5000, 5010]  # Bereich für dynamische Portvergabe   # @param port
 whoisport = 4000  # Fester Port für den Discovery-Dienst          # @param whoisport Fester Port für den Discovery-Dienst
 
 [storage]       # @section storage Speichereinstellungen
-imagepath = "received_images"  # @param imagepath Ordner für empfangene Bilder
+imagepath = "image"  # @param imagepath Ordner für empfangene Bilder

@@ -116,6 +116,7 @@ def parse_knownusers(response):
 def receive_messages(my_port, net_to_ui):
 # @param my_port Portnummer zum Lauschen
 # @param net_to_ui Queue für Netzwerk->UI-Kommunikation
+    config = config_manager.load_config()
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.bind(('', my_port))
@@ -130,13 +131,13 @@ def receive_messages(my_port, net_to_ui):
     abwesend = False  #@brief Variable, die angibt, ob der Nutzer abwesend ist
 
     while True:
-        data, addr = sock.recvfrom(65507)
+        data, addr = sock.recvfrom(512)
         try:
             text = data.decode()
             typ2, sender2, text2 = parse_slcp(data.decode(errors="ignore"))
             if abwesend and typ2 == "MSG":  #@brief falls der Nutzer abwesend ist, wird die Nachricht nicht weitergeleitet
                typ2, sender2, text2 = parse_slcp(data.decode(errors="ignore"))
-               config = config_manager.load_config()
+               
                text2 = config["user"]["autoreply"] #@brief falls der Nutzer abwesend ist, wird die Autoreply-Nachricht gesendet
                net_to_ui.put({"type": "condition", "sender": sender2, "text": text2}) #@brief leitet die Nachricht an die UI weiter
                # ich nutze hier sender2 und text2, weil ich die Variablen nicht umbenennen möchte, da sie schon in der Funktion definiert sind.
@@ -167,6 +168,10 @@ def receive_messages(my_port, net_to_ui):
             if expected_img:
                 img_data += data
                 if len(img_data) >= expected_img[1]:
+                    image_dir = os.path.join("src", "image")
+                    os.makedirs(image_dir, exist_ok=True)  # Ordner erstellen, falls nicht vorhanden
+                    img_filename = os.path.join(image_dir, f"empfangen_{handle}_{int(time.time())}.jpg")
+                    
                     with open(img_filename, "wb") as f:
                         f.write(img_data[:expected_img[1]])
                     print(f"[Empfänger] Bild empfangen von {addr} → gespeichert als {img_filename}")
@@ -226,7 +231,6 @@ def discovery_listener(net_to_ui, my_port):
             new_handle = parts[1]
             port = parts[2]
             ip = parts[3]
-            print("bishier")
             net_to_ui.put({"type": "HANDLE_UPDATE", "new_handle": new_handle, "port": port, "ip":ip})
 
         elif cmd == "KNOWUSERS":
@@ -281,9 +285,11 @@ def send_img(target_ip, target_port, filename, handle=None):
     if ":" in target_ip:
         with socket.socket(socket.AF_INET6, socket.SOCK_DGRAM) as s: #@brief IPv6-Socket
             s.sendto(header, (target_ip, target_port, 0, 0))
-            s.sendto(image_data, (target_ip, target_port, 0, 0))
+            for i in range(0, size, 512):
+                s.sendto(image_data[i:i+512], (target_ip, target_port, 0, 0))
     else:
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:  #@brief IPv4-Socket
             s.sendto(header, (target_ip, target_port))
-            s.sendto(image_data, (target_ip, target_port))
+            for i in range(0, size, 512):
+                s.sendto(image_data[i:i+512], (target_ip, target_port))
     print(f"[Sender] Bild {filename} an {target_ip}:{target_port} gesendet.")
