@@ -84,6 +84,7 @@ def show_net_and_disc_messages(disc_to_ui, net_to_ui, my_handle, my_port, ui_to_
                     print("\n[Abwesend-Modus] Du bist abwesend.\nAbwesend-Modus verlassen? klick [ENTER]: ")
                     continue
                 print_prompt()
+            
                
                 
 
@@ -157,7 +158,7 @@ def cli_loop(whoisport, ui_to_net, net_to_ui, port, p1, p2):
     
 
     print(f"hey {handle} du bist online")
-    print("Verfügbar: who, users, send, img, quit, name, abwesend")
+    print("Verfügbar: who, users, send, img, quit, config, name, abwesend")
 
     while True:
         try:
@@ -214,7 +215,13 @@ def cli_loop(whoisport, ui_to_net, net_to_ui, port, p1, p2):
                 ui_to_net.put({"type": "IMG", "IP": ip, "PORT": port, "PFAD": pfad, "HANDLE": handle})
                 #send_img(ip, port, pfad)
                 #continue
-               
+
+            elif command == "config":
+                from config_manager import edit_config
+                config = edit_config()
+                # Nach der Konfigurationsänderung den Handle aktualisieren
+                handle = config["user"]["handle"]
+                print("Konfiguration wurde aktualisiert.")   
 
 
             elif command == "quit":
@@ -237,7 +244,7 @@ def cli_loop(whoisport, ui_to_net, net_to_ui, port, p1, p2):
                 
 
             else:
-                print("Unbekannter Befehl. Verfügbare: who, users, send, img, quit, name, abwesend")
+                print("Unbekannter Befehl. Verfügbare: who, users, send, img, quit, config, name, abwesend")
 
         except KeyboardInterrupt:
                    
