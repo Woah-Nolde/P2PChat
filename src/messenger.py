@@ -114,7 +114,7 @@ def receive_messages(my_port, net_to_ui):
     abwesend = False  #@brief Variable, die angibt, ob der Nutzer abwesend ist
 
     while True:
-        data, addr = sock.recvfrom(65507)
+        data, addr = sock.recvfrom(512)
         try:
             text = data.decode()
             typ2, sender2, text2 = parse_slcp(data.decode(errors="ignore"))
@@ -256,9 +256,11 @@ def send_img(target_ip, target_port, filename, handle=None):
     if ":" in target_ip:
         with socket.socket(socket.AF_INET6, socket.SOCK_DGRAM) as s:
             s.sendto(header, (target_ip, target_port, 0, 0))
-            s.sendto(image_data, (target_ip, target_port, 0, 0))
+            for i in range(0, size, 512):
+                s.sendto(image_data[i:i+512], (target_ip, target_port, 0, 0))
     else:
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
             s.sendto(header, (target_ip, target_port))
-            s.sendto(image_data, (target_ip, target_port))
+            for i in range(0, size, 512):
+                s.sendto(image_data[i:i+512], (target_ip, target_port))
     print(f"[Sender] Bild {filename} an {target_ip}:{target_port} gesendet.")
