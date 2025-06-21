@@ -5,7 +5,7 @@
 
 import socket
 import threading
-from config_manager import load_config, save_config, handle_autoreply
+from config_manager import load_config, save_config, edit_config, handle_autoreply
 import time
 from multiprocessing import Process, Queue
 from discovery import discoveryloop
@@ -217,7 +217,6 @@ def cli_loop(whoisport, ui_to_net, net_to_ui, port, p1, p2):
                 #continue
 
             elif command.startswith("config"):
-                from config_manager import edit_config, show_config, load_config
                 
                 parts = command.split()
                 if len(parts) == 1:
@@ -249,7 +248,7 @@ Config-Befehle:
                         send_leave(old_handle, whoisport)
                         send_join(handle, port)
                         print(f"\n[Info] Handle wurde von '{old_handle}' zu '{handle}' geändert")
-                    print("[Info] Konfiguration aktualisiert. ManNetzwerkänderungen benötigen Neustart.")
+                    print("[Info] Konfiguration aktualisiert. Netzwerkänderungen benötigen Neustart.")
                 
                 elif parts[1] == "reload":
                     # Konfiguration neu laden
@@ -299,6 +298,7 @@ Config-Befehle:
 # - img: Bild versenden
 # - quit: Beenden
 # - name: Handle ändern
+# - config: Konfiguration bearbeiten
 # - abwesend: Autoreply-Modus
 
 

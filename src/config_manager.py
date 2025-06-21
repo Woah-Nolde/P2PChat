@@ -62,15 +62,13 @@ def edit_config():
         sections = {
             '1': ('user', 'Benutzereinstellungen'),
             '2': ('network', 'Netzwerkeinstellungen'),
-            '3': ('storage', 'Speichereinstellungen')
         }
 
         print("\nKonfiguration bearbeiten:")
         print("1. Benutzereinstellungen (Handle, Autoreply)")
         print("2. Netzwerkeinstellungen (Ports, Discovery)")
-        print("3. Speichereinstellungen (Bildpfad)")
-        print("s. Speichern und zurück")
-        print("0. Zurück ohne Speichern")
+        print("0. Speichern und zurück")
+
 
         # @details
 # Bietet eine menügeführte Oberfläche zur Bearbeitung aller Konfigurationsparameter:
@@ -80,10 +78,7 @@ def edit_config():
 
         choice = input("Auswahl: ").strip().lower()
 
-        if choice == '0':
-            return config  # Ohne Speichern zurückgeben
-            
-        elif choice == 's':
+        if choice == 's':
             if save_config(config):
                 print("Konfiguration erfolgreich gespeichert!")
             return config

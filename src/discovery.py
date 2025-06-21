@@ -52,7 +52,7 @@ def discoveryloop(net_to_disc, disc_to_net,disc_to_ui,DISCOVERY_PORT):
     ensure_singleton(DISCOVERY_PORT,disc_to_ui)
     config = config_manager.load_config()
     
-    #@brief Discovery Port 4000 ist eine vorgaben
+    #@brief Discovery Port 4000 ist eine Vorgabe
         
     DISCOVERY_PORT = config["network"]["whoisport"]
     
