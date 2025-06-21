@@ -216,12 +216,32 @@ def cli_loop(whoisport, ui_to_net, net_to_ui, port, p1, p2):
                 #send_img(ip, port, pfad)
                 #continue
 
-            elif command == "config":
-                from config_manager import edit_config
-                config = edit_config()
-                # Nach der Konfigurationsänderung den Handle aktualisieren
-                handle = config["user"]["handle"]
-                print("Konfiguration wurde aktualisiert.")   
+            elif command.startswith("config"):
+                config = load_config()
+                print("Aktuelle Konfiguration:")
+                print(f"Handle: {config['user']['handle']}")
+                print(f"Port-Bereich: {config['network']['port_range']}")
+                print(f"Discovery-Port: {config['network']['whoisport']}")
+                print("Änderungen vornehmen? (y/n)")
+                if input().strip().lower() == "y":
+                    new_handle = input("Neuer Handle: ").strip()
+                    new_port_range = input("Neuer Port-Bereich (z.B. 5000-6000): ").strip()
+                    new_whoisport = input("Neuer Discovery-Port (z.B. 4000): ").strip()
+                    try:
+                        start_port, end_port = map(int, new_port_range.split("-"))
+                        config["user"]["handle"] = new_handle
+                        config["network"]["port_range"] = [start_port, end_port]
+                        config["network"]["whoisport"] = int(new_whoisport)
+                        save_config(config)
+                        handle = new_handle  # Laufzeit-Änderung übernehmen
+                        send_leave(handle, whoisport)
+                        send_join(handle, port)
+                        print("Konfiguration aktualisiert.")
+                    except ValueError:
+                        print("Ungültige Eingabe. Konfiguration nicht geändert.")
+                 
+                 
+            
 
 
             elif command == "quit":
