@@ -285,11 +285,11 @@ def send_img(target_ip, target_port, filename, handle=None):
     if ":" in target_ip:
         with socket.socket(socket.AF_INET6, socket.SOCK_DGRAM) as s: #@brief IPv6-Socket
             s.sendto(header, (target_ip, target_port, 0, 0))
-            for i in range(0, size, 512):
+            for i in range(0, size, 512):   #@brief Senden der Bilddaten in 512-Byte-Blöcken
                 s.sendto(image_data[i:i+512], (target_ip, target_port, 0, 0))
     else:
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:  #@brief IPv4-Socket
             s.sendto(header, (target_ip, target_port))
-            for i in range(0, size, 512):
+            for i in range(0, size, 512):  #@brief Senden der Bilddaten in 512-Byte-Blöcken
                 s.sendto(image_data[i:i+512], (target_ip, target_port))
     print(f"[Sender] Bild {filename} an {target_ip}:{target_port} gesendet.")
