@@ -99,6 +99,7 @@ def parse_knownusers(response):
     # Um das Bild zu sehen, öffne die Datei mit einem Bildbetrachter oder benenne sie ggf. in .jpg/.png um,
     # falls du weißt, welches Format gesendet wurde.
 def receive_messages(my_port, net_to_ui):
+    config = config_manager.load_config()
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.bind(('', my_port))
@@ -119,7 +120,7 @@ def receive_messages(my_port, net_to_ui):
             typ2, sender2, text2 = parse_slcp(data.decode(errors="ignore"))
             if abwesend and typ2 == "MSG":  #@brief falls der Nutzer abwesend ist, wird die Nachricht nicht weitergeleitet
                typ2, sender2, text2 = parse_slcp(data.decode(errors="ignore"))
-               config = config_manager.load_config()
+               
                text2 = config["user"]["autoreply"] #@brief falls der Nutzer abwesend ist, wird die Autoreply-Nachricht gesendet
                net_to_ui.put({"type": "condition", "sender": sender2, "text": text2}) #@brief leitet die Nachricht an die UI weiter
                # ich nutze hier sender2 und text2, weil ich die Variablen nicht umbenennen möchte, da sie schon in der Funktion definiert sind.
@@ -150,6 +151,10 @@ def receive_messages(my_port, net_to_ui):
             if expected_img:
                 img_data += data
                 if len(img_data) >= expected_img[1]:
+                    image_dir = os.path.join("src", "image")
+                    os.makedirs(image_dir, exist_ok=True)  # Ordner erstellen, falls nicht vorhanden
+                    img_filename = os.path.join(image_dir, f"empfangen_{handle}_{int(time.time())}.jpg")
+                    
                     with open(img_filename, "wb") as f:
                         f.write(img_data[:expected_img[1]])
                     print(f"[Empfänger] Bild empfangen von {addr} → gespeichert als {img_filename}")
@@ -209,7 +214,6 @@ def discovery_listener(net_to_ui, my_port):
             new_handle = parts[1]
             port = parts[2]
             ip = parts[3]
-            print("bishier")
             net_to_ui.put({"type": "HANDLE_UPDATE", "new_handle": new_handle, "port": port, "ip":ip})
 
         elif cmd == "KNOWUSERS":
