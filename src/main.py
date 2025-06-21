@@ -1,6 +1,6 @@
 import socket
 import threading
-from config_manager import load_config, save_config
+from config_manager import load_config, save_config, handle_autoreply
 import time
 from multiprocessing import Process, Queue
 from discovery import discoveryloop
@@ -21,11 +21,22 @@ def get_own_ip():
     except Exception:
         return "127.0.0.1"  # Fallback
     
-def show_net_and_disc_messages(disc_to_ui, net_to_ui, my_handle, my_port):
+def show_net_and_disc_messages(disc_to_ui, net_to_ui, my_handle, my_port, ui_to_net):
     global handle  # <-- hinzufügen!
+    global abwesend
+    global known_users
     while True:
         if not net_to_ui.empty():
             msg = net_to_ui.get()
+            if msg["type"] == "condition":
+                if abwesend == True:
+                    if msg["sender"] not in known_users:
+                        print("\nUnbekannter Nutzer hat geschrieben. Autoreply kann nicht gesendet werden.")
+                        continue
+                    ip, target_port = known_users[msg["sender"]]
+                    ui_to_net.put({"type": "MSG", "text": msg["text"], "target_ip": ip, "target_port": target_port, "handle": msg["sender"]})
+                    
+                        
             
             if msg["type"] == "HANDLE_UPDATE":
                 if int (msg["port"]) == my_port:
@@ -45,7 +56,7 @@ def show_net_and_disc_messages(disc_to_ui, net_to_ui, my_handle, my_port):
                 print("\n[Discovery]", msg["handle"], "ist nun online!", msg["ip"], ":", msg["port"])
                 print_prompt()
             if msg["type"] == "WHO_RESPONSE":
-                global known_users
+                
                 known_users = msg["users"]
                 if not known_users or (len(known_users) == 1 and my_handle in known_users):
                     print("Niemand online, außer dir!")
@@ -76,8 +87,8 @@ def send_join(handle, port):
     #       with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
     #           s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     #           s.sendto(msg.encode(), ('255.255.255.255', 4000))
-
 def send_leave(handle, whoisport):
+    global known_users
     message = f"LEAVE {handle}"
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
         s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -95,17 +106,31 @@ def send_leave(handle, whoisport):
     #     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
     #         s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     #         s.sendto(message.encode(), ('255.255.255.255', whoisport))
-
 def cli_loop(whoisport, ui_to_net, net_to_ui, port, p1, p2):
     global known_users
     global handle  # <-- hinzufügen!
+    global abwesend
     known_users = {}
+    abwesend = False
+
     print(f"hey {handle} du bist online")
-    print("Verfügbar: who, users, send, img, quit, name")
+    print("Verfügbar: who, users, send, img, quit, name, abwesend")
 
     while True:
         try:
             command = input("Command > ").strip()
+
+            if command == "abwesend":
+                abwesend = True
+                print("[Abwesend-Modus] Du bist jetzt abwesend.")
+                ui_to_net.put({"type": "condition", "abwesend":True })
+                while True:
+                        input("Abwesend-Modus verlassen? klick [ENTER]: ").strip().lower()
+                        abwesend = False
+                        if abwesend == False:
+                            break
+                print("[Abwesend-Modus] Du bist wieder verfügbar.") 
+                continue
 
             if command == "who":
                 ui_to_net.put({"type": "WHO"})
@@ -166,7 +191,7 @@ def cli_loop(whoisport, ui_to_net, net_to_ui, port, p1, p2):
                 
 
             else:
-                print("Unbekannter Befehl. Verfügbare: who, users, send, img, quit, name")
+                print("Unbekannter Befehl. Verfügbare: who, users, send, img, quit, name, abwesend")
 
         except KeyboardInterrupt:
                    
@@ -206,7 +231,7 @@ def main():
     p1.start()
 
 
-    thread = threading.Thread(target=show_net_and_disc_messages, args=(disc_to_ui, net_to_ui, handle,port))
+    thread = threading.Thread(target=show_net_and_disc_messages, args=(disc_to_ui, net_to_ui, handle,port, ui_to_net))
     thread.daemon = True
     thread.start()
 

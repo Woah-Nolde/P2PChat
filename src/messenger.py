@@ -3,10 +3,11 @@ import socket
 import os
 import threading
 import time
+import config_manager
 
 # NEU: SLCP-Protokoll-Parser
 def parse_slcp(message):
-    if message.startswith("MSG:"):
+    if message.startswith("MSG"):
         parts = message[4:].split(" ", 1)
         if len(parts) == 2:
             sender = parts[0]
@@ -17,6 +18,7 @@ def parse_slcp(message):
 
 
 def network_main(ui_to_net, net_to_ui, net_to_disc, disc_to_net,port):
+    global abwesend
     
 
     thread = threading.Thread(target=receive_messages, args=(port,net_to_ui))
@@ -25,9 +27,13 @@ def network_main(ui_to_net, net_to_ui, net_to_disc, disc_to_net,port):
     threading.Thread(target=discovery_listener, args=(net_to_ui, port), daemon=True).start()
     while True:
         if not disc_to_net.empty():
-            msg = disc_to_net.get()
+            msg = disc_to_net.get() # noch keine ahnung warum ich das emmpfange. habe was geändert.
         if not ui_to_net.empty():
             msg = ui_to_net.get()  # Holt die Nachricht aus der Queue
+            if msg["type"] == "condition":
+                if msg["abwesend"] == True:
+                    abwesend = True
+                    
             if msg["type"] == "IMG":
                 send_img(msg["IP"], msg["PORT"], msg["PFAD"], msg.get("HANDLE"))
         
@@ -103,11 +109,24 @@ def receive_messages(my_port, net_to_ui):
     expected_img = None  # (handle, size)
     img_data = b""
     img_filename = ""
+    global abwesend  #@brief falls der Nutzer abwesend ist, wird die Nachricht nicht weitergeleitet
+    abwesend = False  #@brief Variable, die angibt, ob der Nutzer abwesend ist
 
     while True:
         data, addr = sock.recvfrom(65507)
         try:
             text = data.decode()
+            typ2, sender2, text2 = parse_slcp(data.decode(errors="ignore"))
+            if abwesend and typ2 == "MSG":  #@brief falls der Nutzer abwesend ist, wird die Nachricht nicht weitergeleitet
+               typ2, sender2, text2 = parse_slcp(data.decode(errors="ignore"))
+               config = config_manager.load_config()
+               text2 = config["user"]["autoreply"] #@brief falls der Nutzer abwesend ist, wird die Autoreply-Nachricht gesendet
+               net_to_ui.put({"type": "condition", "sender": sender2, "text": text2}) #@brief leitet die Nachricht an die UI weiter
+               # ich nutze hier sender2 und text2, weil ich die Variablen nicht umbenennen möchte, da sie schon in der Funktion definiert sind.
+            
+            
+               
+               
 
             message = data.decode().strip()
             parts = message.split()
