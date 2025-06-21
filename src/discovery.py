@@ -138,21 +138,4 @@ def discoveryloop(net_to_disc, disc_to_net,disc_to_ui,DISCOVERY_PORT):
                     s.sendto(event_msg.encode(), ('255.255.255.255', 4001))
                 #print(f"[Discovery] {handle} hat den Chat verlassen.")
                 # disc_to_ui.put({"type": "LEAVE","handle": handle})
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                

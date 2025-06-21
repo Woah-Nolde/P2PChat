@@ -206,9 +206,11 @@ def discovery_listener(net_to_ui, my_port):
             net_to_ui.put({"type": "WHO_RESPONSE", "users": known})
 
 
-def send_msg(target_ip, target_port, sender_handle, text):
+def send_msg(target_ip, target_port, target_handle, text):
     text_masked = text.replace(" ", "%20")
-    msg = f"MSG:{sender_handle} {text_masked}"
+    msg = f"MSG {target_handle} {text_masked}"
+    if len(msg) > 512:
+        raise ValueError("Nachricht zu lang, maximal 512 Zeichen erlaubt.") # Maximale Länge von Nachrichten
     if ":" in target_ip:
         with socket.socket(socket.AF_INET6, socket.SOCK_DGRAM) as s:
             s.sendto(msg.encode(), (target_ip, target_port, 0, 0))

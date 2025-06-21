@@ -1,9 +1,10 @@
 import tomllib
 import tomli_w 
 import os
+import socket
 
 known_users = {}
-conf_file = "config/config.toml"
+conf_file = "config.toml"
 
 
 def load_config(path=conf_file):
@@ -57,3 +58,10 @@ def save_image(handle, data):
     with open(path, "wb") as f:
         f.write(data)
     print(f"Bild von {handle} gespeichert unter {path}")
+
+def handle_autoreply(sender_ip, sender_port, config):
+    #Sendet automatische Antwort, falls in Konfiguration aktiviert
+    if config["user"]["autoreply"]:
+        reply_msg = f"MSG {config['user']['handle']} {config['user']['autoreply']}\n"
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.sendto(reply_msg.encode(), (sender_ip, sender_port))
