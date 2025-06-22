@@ -47,6 +47,11 @@ def network_main(ui_to_net, net_to_ui, net_to_disc, disc_to_net,port):
     while True:
         if not disc_to_net.empty():
             msg = disc_to_net.get() # noch keine ahnung warum ich das emmpfange. habe was geändert.
+            # if msg["type"] == "JOIN":
+            #     handle = msg["handle"]
+            #     ip = msg["ip"]
+            #     port = msg["port"]
+            #     net_to_disc.put(f"USERJOIN {handle} {ip} {port}") Da wir das Broadcasten nutzen und diese als verlässlicher sehen, ist das nicht mehr nötig.
         if not ui_to_net.empty():
             msg = ui_to_net.get()  # Holt die Nachricht aus der Queue
             if msg["type"] == "condition":
@@ -202,6 +207,10 @@ def receive_messages(my_port, net_to_ui):
 def discovery_listener(net_to_ui, my_port):
     """
     Lauscht auf Discovery-Broadcast-Nachrichten (z.B. USERJOIN, USERLEAVE) und leitet sie per IPC weiter.
+    @param net_to_ui Queue für Netzwerk->UI-Kommunikation
+    @param my_port Lokaler Port für Discovery (4001)
+    @details Diese Funktion wird in einem separaten Thread ausgeführt, um Discovery-Nachrichten zu empfangen.
+    @note Discovery-Nachrichten werden über UDP empfangen und nicht über IPC da dies probleme bereiten könnte.
     """
     DISCOVERY_EVENT_PORT = 4001 # Zusätzlich zu Port 4000 (JOIN/WHO/LEAVE)
 

@@ -100,6 +100,7 @@ def discoveryloop(net_to_disc, disc_to_net, disc_to_ui, DISCOVERY_PORT):
             
             # Benachrichtigung über neuen Teilnehmer senden
             event_msg = f"USERJOIN {handle} {ip} {port}"
+            #disc_to_net.put({"type":"JOIN", "handle":handle, "ip":ip, "port":port}) Da wir das Broadcasten nutzen und diese als verlässlicher sehen, ist das nicht mehr nötig.
             with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
                 s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
                 s.sendto(event_msg.encode(), ('255.255.255.255', 4001))
