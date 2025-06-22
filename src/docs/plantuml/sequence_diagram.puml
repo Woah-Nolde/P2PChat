@@ -1,0 +1,200 @@
+# docs/plantuml/sequence_diagram.puml
+@startuml sequence_diagram
+!theme plain
+title SLCP Protokoll - Vollständiger Ablauf
+
+participant "Alice" as A
+participant "Bob" as B  
+participant "Discovery A" as DA
+participant "Discovery B" as DB
+
+== Initialization ==
+A -> DA : START Discovery
+B -> DB : START Discovery
+
+== Join Process ==
+A -> DA : JOIN Alice 5000
+note right: Broadcast to 255.255.255.255:4000
+DA -> DB : JOIN Alice 5000 [Broadcast]
+DB -> B : [Notification] Alice joined
+
+B -> DB : JOIN Bob 5001  
+note right: Broadcast to 255.255.255.255:4000
+DB -> DA : JOIN Bob 5001 [Broadcast]
+DA -> A : [Notification] Bob joined
+
+== Discovery Process ==
+A -> DA : WHO
+note right: Find all users
+DA -> DB : WHO [Broadcast]
+DB -> DA : KNOWUSERS Bob 192.168.1.42 5001
+DA -> A : KNOWUSERS Bob 192.168.1.42 5001
+
+== Direct Messaging ==
+A -> B : MSG Bob "Hallo, wie geht's?" [Direct UDP]
+note right: Direct P2P communication
+B -> A : MSG Alice "Gut, danke!" [Direct UDP]
+
+== Image Transfer ==
+A -> B : IMG Bob 2048 [Direct UDP]
+note right: Image size in bytes
+A -> B : [Binary Data: 2048 bytes] [Direct UDP]
+B -> B : Save image locally
+
+== Absence Mode ==  
+B -> B : Enable absence mode
+A -> B : MSG Bob "Bist du da?"
+B -> A : MSG Alice "Bin gerade nicht da!" [Auto-reply]
+
+== Leave Process ==
+A -> DA : LEAVE Alice
+DA -> DB : LEAVE Alice [Broadcast]
+DB -> B : [Notification] Alice left
+A -> B : LEAVE Alice [Direct to known users]
+
+@enduml
+
+# docs/plantuml/class_diagram.puml  
+@startuml class_diagram
+!theme plain
+title SLCP Chat-System - Klassendiagramm
+
+package "Main Module" {
+    class MainController {
+        +handle: str
+        +port: int
+        +known_users: dict
+        +abwesend: bool
+        --
+        +main()
+        +cli_loop()
+        +send_join(handle, port)
+        +send_leave(handle, port)
+        +show_net_and_disc_messages()
+        +find_free_port(start, end)
+        +get_own_ip()
+    }
+}
+
+package "Network Layer" {
+    class Messenger {
+        +port: int
+        +socket: UDP_Socket
+        --
+        +network_main()
+        +handle_incoming()
+        +send_message()
+        +send_image()
+        +parse_slcp()
+    }
+    
+    class SLCPProtocol {
+        --
+        +parse_join(msg)
+        +parse_msg(msg)  
+        +parse_img(msg)
+        +format_message(type, params)
+        +validate_message(msg)
+    }
+}
+
+package "Discovery Service" {
+    class DiscoveryService {
+        +whoisport: int
+        +users: dict
+        +socket: UDP_Socket
+        --
+        +discoveryloop()
+        +handle_join(handle, ip, port)
+        +handle_leave(handle)
+        +handle_who()
+        +broadcast_response()
+    }
+}
+
+package "Configuration" {
+    class ConfigManager {
+        +config_file: str
+        +config: dict
+        --
+        +load_config()
+        +save_config()
+        +edit_config()
+        +handle_autoreply()
+    }
+}
+
+package "Communication" {
+    class IPCQueue {
+        +queue: Queue
+        --
+        +put(message)
+        +get()
+        +empty()
+    }
+}
+
+MainController --> Messenger : uses
+MainController --> DiscoveryService : uses  
+MainController --> ConfigManager : uses
+MainController --> IPCQueue : uses
+
+Messenger --> SLCPProtocol : uses
+Messenger --> IPCQueue : communicates
+
+DiscoveryService --> IPCQueue : communicates
+
+note right of MainController
+  Koordiniert alle Komponenten
+  Verwaltet CLI-Interface
+end note
+
+note right of Messenger
+  Implementiert SLCP-Protokoll
+  Verwaltet UDP-Kommunikation
+end note
+
+note right of DiscoveryService  
+  Broadcast-basierte Nutzerermittlung
+  Singleton pro Host
+end note
+
+@enduml
+
+# docs/plantuml/communication_flow.puml
+@startuml communication_flow
+!theme plain
+title IPC-Kommunikationsfluss
+
+queue "ui_to_net" as Q1
+queue "net_to_ui" as Q2  
+queue "net_to_disc" as Q3
+queue "disc_to_net" as Q4
+queue "disc_to_ui" as Q5
+
+participant "CLI" as CLI
+participant "Messenger" as MSG
+participant "Discovery" as DISC
+
+== User sends message ==
+CLI -> Q1 : {"type": "MSG", "text": "Hello", "target": "Bob"}
+Q1 -> MSG : Dequeue message
+MSG -> MSG : Format SLCP message
+MSG -> Bob : UDP: "MSG Bob Hello"
+
+== User requests discovery ==  
+CLI -> Q1 : {"type": "WHO"}
+Q1 -> MSG : Dequeue WHO request
+MSG -> Q3 : Forward WHO to discovery
+Q3 -> DISC : Process WHO request
+DISC -> DISC : Broadcast WHO message
+DISC -> Q4 : Response with user list
+Q4 -> MSG : Receive user list
+MSG -> Q2 : Forward to UI
+Q2 -> CLI : Display users
+
+== Incoming message ==
+Bob -> MSG : UDP: "MSG Alice Hi!"
+MSG -> MSG : Parse SLCP message  
+MSG -> Q2 : {"type": "recv_msg", "sender": "Bob", "text": "Hi!"}
+Q2 -> CLI
