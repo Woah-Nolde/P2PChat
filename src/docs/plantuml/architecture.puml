@@ -1,0 +1,90 @@
+@startuml SLCP_Architecture
+skinparam monochrome true
+skinparam shadowing false
+skinparam defaultFontName Courier
+left to right direction
+
+title SLCP Chat System Architecture\n**Peer-to-Peer Local Network Chat**
+
+package "Main Process (CLI)" as main {
+  [CLI Interface] as cli
+  [Config Manager] as config
+  [Process Manager] as proc
+}
+
+package "Network Process" as network {
+  [SLCP Protocol Handler] as slcp
+  [Message Dispatcher] as dispatcher
+  [Image Transfer] as img
+}
+
+package "Discovery Process" as discovery {
+  [Broadcast Listener] as listener
+  [Client Registry] as registry
+  [Handle Resolver] as resolver
+}
+
+database "Configuration" as cfg {
+  [config.toml] as toml
+}
+
+queue "IPC Queues" as ipc {
+  (ui_to_net) as q1
+  (net_to_ui) as q2
+  (net_to_disc) as q3
+  (disc_to_net) as q4
+  (disc_to_ui) as q5
+}
+
+cli --> q1 : "send_msg\nimg_cmd"
+q2 --> cli : "incoming_msg\nstatus"
+cli --> proc : "start/stop"
+proc --> network : "launch"
+proc --> discovery : "launch"
+config --> toml : "read/write"
+
+network --> q3 : "WHO_REQ"
+q4 --> network : "WHO_RESP"
+slcp --> dispatcher : "parse"
+dispatcher --> img : "binary_data"
+img --> slcp : "ack"
+
+discovery --> q5 : "user_join\nuser_leave"
+listener --> registry : "update"
+registry --> resolver : "handle_check"
+resolver --> registry : "unique_handle"
+
+component "Network Stack" as net {
+  [UDP Socket] as udp
+  [Broadcast] as broadcast
+}
+
+slcp --> udp : "MSG/IMG"
+dispatcher --> udp : "recv"
+listener --> broadcast : "JOIN/LEAVE"
+broadcast --> listener : "DISCOVERY"
+
+note right of main
+  **Key Responsibilities:**
+  - User interaction
+  - Process coordination
+  - Configuration management
+end note
+
+note left of network
+  **Protocol Features:**
+  - SLCP message parsing
+  - 512-byte chunks
+  - Image fragmentation
+  - IPv4/IPv6 dual stack
+end note
+
+note right of discovery
+  **Discovery Service:**
+  - Singleton pattern (Port 4000)
+  - Handle collision resolution
+  - Client registry (IP,Port,Handle)
+  - Heartbeat monitoring
+end note
+
+@enduml
