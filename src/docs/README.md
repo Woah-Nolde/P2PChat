@@ -97,7 +97,7 @@ python3 main.py
 
 ## Logo
 <p align="center">
-  <img src=".src/image/Logo/Logo.png" alt="Projektlogo" width="300" />
+  <img src=".src/image/Logo/Logo.png" alt="Projektlogo" width="250" />
 </p>
 
 ## Screenshot der CLI
