@@ -95,22 +95,3 @@ python3 main.py
 
 *Lizenz: MIT – Frankfurt University of Applied Sciences, 2025*
 ```
-
-### Wichtige Hinweise:
-1. **GitHub-Unterstützung**:
-   - Das Mermaid-Diagramm wird nativ von GitHub unterstützt
-   - Die Tabellen und Code-Blöcke werden korrekt gerendert
-
-2. **Anpassungen**:
-   - Ersetzen Sie `ihr-repo` mit Ihrem GitHub-Repository
-   - Tragen Sie die echten Teamnamen ein
-   - Fügen Sie ggf. Screenshots hinzu (`docs/screenshot.png`)
-
-3. **Doxygen**:
-   - Die README ist doxygen-kompatibel (keine Emojis in technischen Abschnitten)
-   - Für volle Doxygen-Unterstützung ergänzen Sie Code-Kommentare mit `/** ... */`
-
-Diese Version ist:
-- 100% kopierbar (keine versteckten Formatierungen)
-- Technisch exakt für Ihr 3-Prozess-Modell
-- Erfüllt alle Projektanforderungen aus der Aufgabenstellung
