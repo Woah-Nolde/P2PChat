@@ -279,19 +279,30 @@ def send_msg(target_ip, target_port, target_handle, text):
 
 
 ## @brief Sendet Bilddatei
-def send_img(target_ip, target_port, filename, handle=None):
+def send_img(target_ip, target_port, filename, handle=None, net_to_ui=None):
 # @param target_ip Ziel-IP
 # @param target_port Ziel-Port
 # @param filename Pfad zur Bilddatei
 # @param handle Optionaler Absender-Handle
     if not os.path.exists(filename):
         print(f"[Fehler] Bilddatei {filename} nicht gefunden.")
+        # Fehler ggf. an UI weitergeben
+        if net_to_ui:
+            net_to_ui.put({"type": "IMG_ERROR", "text": f"Bilddatei {filename} nicht gefunden."})
         return
 
     with open(filename, "rb") as f:
         image_data = f.read()
 
     size = len(image_data)
+    MAX_IMAGE_SIZE = 50 * 1024  # 50 KB
+
+    if size > MAX_IMAGE_SIZE:
+        print(f"[Fehler] Bild zu groß ({size} Bytes). Maximal erlaubt: {MAX_IMAGE_SIZE} Bytes.")
+        if net_to_ui:
+            net_to_ui.put({"type": "IMG_ERROR", "text": f"Bild zu groß ({size} Bytes). Maximal erlaubt: {MAX_IMAGE_SIZE} Bytes."})
+        return
+
     # 1. Header senden
     header = f"IMG {handle if handle else 'unknown'} {size}".encode() # @brief Header mit Handle und Größe der Bilddaten
     if ":" in target_ip:

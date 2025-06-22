@@ -87,7 +87,10 @@ def show_net_and_disc_messages(disc_to_ui, net_to_ui, my_handle, my_port, ui_to_
                     continue
                 print_prompt()
             
-               
+            if msg["type"] == "IMG_ERROR":
+                print(f"\n[Fehler beim Bildversand] {msg['text']}")
+                print_prompt()
+                continue
                 
 
         if not disc_to_ui.empty():
