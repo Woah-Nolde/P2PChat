@@ -1,3 +1,6 @@
+#@file gui.py
+#@brief P2P Chat GUI mit Netzwerk-Discovery, Messaging und einfacher Benutzeroberfläche mittels PyQt5.
+
 import socket
 import threading
 import time
@@ -18,7 +21,7 @@ from PyQt5.QtWidgets import (
     QDialog,
     QInputDialog,
     QFileDialog,
-    QListWidget,     # <-- Hier hinzufügen
+    QListWidget,
 )
 from PyQt5.QtCore import QThread, pyqtSignal, QUrl
 from PyQt5.QtGui import QPixmap, QTextCursor
@@ -27,7 +30,11 @@ from config_manager import load_config, save_config, edit_config
 from discovery import discoveryloop
 from messenger import network_main
 
-# Hilfsfunktion aus main.py, um eigenen IP zu bekommen
+#@brief Hilfsfunktion, um die eigene IP-Adresse zu ermitteln.
+# Versucht, eine UDP-Verbindung zu Google DNS herzustellen, um die lokale IP zu bestimmen.
+# Falls das fehlschlägt, wird 127.0.0.1 zurückgegeben.
+#@return str Eigene IP-Adresse als String.
+
 def get_own_ip():
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
@@ -36,6 +43,9 @@ def get_own_ip():
     except Exception:
         return "127.0.0.1"
 
+ #@brief Sendet eine JOIN-Nachricht per Broadcast.
+ #@param handle Benutzername/Handle, der sich verbindet.
+ #@param port UDP-Port, auf dem der Benutzer erreichbar ist.
 
 def send_join(handle, port):
     msg = f"JOIN {handle} {port}"
@@ -43,6 +53,10 @@ def send_join(handle, port):
         s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         s.sendto(msg.encode(), ('255.255.255.255', 4000))
 
+ #@brief Sendet eine LEAVE-Nachricht an bekannte Nutzer und Broadcast.
+ #@param handle Handle des Benutzers, der den Chat verlässt.
+ #@param whoisport Port für Broadcast-LEAVE.
+ #@param known_users Dictionary mit bekannten Nutzern (handle -> (ip, port)).
 
 def send_leave(handle, whoisport, known_users):
     message = f"LEAVE {handle}"
@@ -54,6 +68,11 @@ def send_leave(handle, whoisport, known_users):
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
             s.sendto(message.encode(), (ip, port))
 
+ #@brief Findet einen freien UDP-Port im angegebenen Bereich.
+ #@param start_port Start des Portbereichs.
+ #@param end_port Ende des Portbereichs.
+ #@return int Gefundener freier Port.
+ #@throws RuntimeError Wenn kein freier Port gefunden wurde.
 
 def find_free_port(start_port, end_port):
     for port in range(start_port, end_port + 1):
@@ -66,12 +85,15 @@ def find_free_port(start_port, end_port):
             continue
     raise RuntimeError(f"Kein freier UDP-Port im Bereich {start_port}-{end_port} gefunden!")
 
+#@brief Thread zum Lesen von Nachrichten aus Netzwerk- und Discovery-Queues und zur Aktualisierung der GUI.
 
 class ReaderThread(QThread):
     new_log = pyqtSignal(str)
     update_users = pyqtSignal(dict)
     update_handle = pyqtSignal(str)
     abwesend_mode = pyqtSignal(bool)
+
+#@brief Thread zum Lesen von Nachrichten aus Netzwerk- und Discovery-Queues und zur Aktualisierung der GUI.
 
     def __init__(self, disc_to_ui, net_to_ui, ui_to_net, handle, port):
         super().__init__()
@@ -82,6 +104,13 @@ class ReaderThread(QThread):
         self.port = port
         self.abwesend = False
         self.known_users = {}
+
+    #@brief Konstruktor des ReaderThreads.
+    #@param disc_to_ui Queue mit Discovery-Nachrichten an die GUI.
+    #@param net_to_ui Queue mit Netzwerk-Nachrichten an die GUI.
+    #@param ui_to_net Queue mit Nachrichten von GUI ans Netzwerk.
+    #@param handle Benutzerhandle.
+    #@param port Netzwerkport.
 
     def run(self):
         while True:
@@ -192,9 +221,12 @@ class ReaderThread(QThread):
 
             time.sleep(0.1)  # CPU schonen
 
+#@brief Hauptschleife des Threads zum Verarbeiten und Verteilen von Nachrichten.
 
 class MainWindow(QMainWindow):
+#@brief Hauptfenster der Chat-GUI.
     def __init__(self):
+    #@brief Initialisiert das Hauptfenster, GUI-Elemente und startet Netzwerk- und Discovery-Prozesse.
         super().__init__()
 
         self.setWindowTitle("P2P Chat GUI")
@@ -222,6 +254,7 @@ class MainWindow(QMainWindow):
         self._load_config_and_start()
 
     def apply_style(self):
+    #@brief Wendet CSS-ähnliche Styles auf die GUI-Elemente an.
         style = """
         QWidget {
             background-color: #e6f0fa;  /* sehr helles Blau */
@@ -277,6 +310,7 @@ class MainWindow(QMainWindow):
         self.setStyleSheet(style)
 
     def choose_image(self):
+    #@brief Öffnet einen Datei-Dialog zum Auswählen eines Bildes.
         options = QFileDialog.Options()
         file_path, _ = QFileDialog.getOpenFileName(
             self,
@@ -289,6 +323,7 @@ class MainWindow(QMainWindow):
             self.input_message.setText(file_path)
 
     def _setup_ui(self):
+    #@brief Erstellt und organisiert alle GUI-Elemente (Widgets, Layouts, Buttons).
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
 
@@ -358,6 +393,7 @@ class MainWindow(QMainWindow):
         central_widget.setLayout(vbox)
 
     def _load_config_and_start(self):
+    #@brief Lädt die Konfiguration, startet Netzwerk- und Discovery-Prozesse sowie den ReaderThread.
         # Laden der Konfiguration
         config = load_config()
         self.handle = config["user"]["handle"]
@@ -390,6 +426,8 @@ class MainWindow(QMainWindow):
         send_join(self.handle, self.port)
 
     def log(self, text):
+    #@brief Schreibt Text in das Chat-Log-Fenster, unterstützt HTML.
+    #@param text Zu schreibender Text.
         if "<img" in text or "<b>" in text or "<br>" in text:
             # HTML einfügen
             self.chat_log.moveCursor(QTextCursor.End)
@@ -400,21 +438,27 @@ class MainWindow(QMainWindow):
             self.chat_log.append(text)
 
     def update_known_users(self, users):
+    #@brief Aktualisiert die Liste der bekannten Nutzer in der GUI.
+    #@param users Dictionary der bekannten Nutzer (handle -> (ip, port)).
         self.known_users = users
         self.user_list_widget.clear()
         for h, (ip, port) in users.items():
             self.user_list_widget.addItem(f"{h} ({ip}:{port})")
 
     def update_handle(self, new_handle):
+    #@brief Aktualisiert den eigenen Handle im Programm und GUI.
+    #@param new_handle Neuer Benutzername.
         self.handle = new_handle
         self.log(f"Dein neuer Name ist: {new_handle}")
 
     # GUI-Befehle analog CLI
 
     def send_who(self):
+    #@brief Sendet eine WHO-Anfrage an das Netzwerk.
         self.ui_to_net.put({"type": "WHO"})
 
     def show_users(self):
+    #@brief Zeigt bekannte Nutzer im Chat-Log an.
         if not self.known_users:
             self.log("Keine bekannten Nutzer.")
         else:
@@ -422,6 +466,7 @@ class MainWindow(QMainWindow):
             self.log(f"Bekannte Nutzer: {users_str}")
 
     def send_message(self):
+    #@brief Sendet eine Text- oder Bildnachricht an einen bekannten Nutzer.
         target = self.input_handle.text().strip()
         text = self.input_message.text().strip()
 
@@ -485,6 +530,7 @@ class MainWindow(QMainWindow):
         self.input_message.clear()
 
     def change_name(self):
+    #@brief Öffnet Dialog zum Ändern des Benutzernamens und sendet die Änderung.
         new_handle, ok = QInputDialog.getText(self, "Name ändern", "Neuer Name:")
         if ok and new_handle:
             if new_handle == self.handle:
@@ -498,6 +544,7 @@ class MainWindow(QMainWindow):
             self.log(f"Name geändert zu: {self.handle}")
 
     def edit_config_popup(self):
+    #@brief Öffnet ein Popup zum Bearbeiten der Konfiguration.
         from PyQt5.QtWidgets import QDialog, QVBoxLayout, QFormLayout, QLineEdit, QSpinBox, QDialogButtonBox, QMessageBox
         from config_manager import load_config, save_config
 
@@ -543,15 +590,18 @@ class MainWindow(QMainWindow):
         dlg.exec_()
 
     def edit_config(self):
+    #@brief Öffnet externen Konfigurationseditor (CLI).
         edit_config()
         self.log("Config bearbeitet.")
 
     def reload_config(self):
+    #@brief Lädt die Konfiguration neu.
         config = load_config()
         self.log("Config neu geladen.")
         # Optional: Config aktualisieren im Programm, z.B. Handle, Whoisport usw.
 
     def toggle_abwesend(self):
+    #@brief Aktiviert oder deaktiviert den Abwesend-Modus.
         self.abwesend = not self.abwesend
         if self.abwesend:
             self.log("Abwesend-Modus aktiviert.")
@@ -562,6 +612,7 @@ class MainWindow(QMainWindow):
             self.reader_thread.abwesend = self.abwesend
 
     def quit_chat(self):
+    #@brief Sendet LEAVE-Nachricht und beendet alle Prozesse und die Anwendung.
         send_leave(self.handle, self.whoisport, self.known_users)
 
         if self.network_process and self.network_process.is_alive():
