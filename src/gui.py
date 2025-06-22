@@ -433,10 +433,15 @@ class MainWindow(QMainWindow):
 
         ip, port = self.known_users[target]
 
-        # Prüfen, ob text ein Bildpfad ist (du kannst das noch verbessern)
         image_extensions = ('.png', '.jpg', '.jpeg', '.bmp', '.gif')
+        MAX_IMAGE_SIZE = 50 * 1024  # 50 KB
+
         if os.path.isfile(text) and text.lower().endswith(image_extensions):
-            # Bild laden und als Thumbnail anzeigen
+            size = os.path.getsize(text)
+            if size > MAX_IMAGE_SIZE:
+                self.log(f"[Fehler] Bild zu groß ({size} Bytes). Maximal erlaubt: {MAX_IMAGE_SIZE} Bytes.")
+                return
+
             pixmap = QPixmap(text)
             if not pixmap.isNull():
                 scaled = pixmap.scaledToWidth(200)  # Thumbnailgröße
@@ -447,25 +452,22 @@ class MainWindow(QMainWindow):
                 self.chat_log.insertHtml(f'<img src="{text}"><br>')
                 self.chat_log.ensureCursorVisible()
 
-            # Bilddatei lesen und Base64-kodieren
             import base64
             with open(text, "rb") as img_file:
                 b64_data = base64.b64encode(img_file.read()).decode('utf-8')
 
-            # Nachricht mit Bildtyp und Daten senden
             self.ui_to_net.put({
-                "data": b64_data,
-                "filename": os.path.basename(text),
-                "target_ip": ip,
-                "target_port": port,
-                "handle": self.handle,
-                "PFAD": text,      # Bildpfad ergänzen
+                "type": "IMG",
+                "IP": ip,
+                "PORT": port,
+                "PFAD": text,
+                "HANDLE": self.handle,
             })
 
             self.input_message.clear()
             return
 
-        # Sonstige Nachricht senden (Text)
+        # Textnachricht senden
         self.ui_to_net.put({
             "type": "MSG",
             "text": text,
