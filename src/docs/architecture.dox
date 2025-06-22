@@ -4,336 +4,204 @@
 @tableofcontents
 
 @section design_principles Entwurfsprinzipien
-
-Das SLCP Chat-System folgt einer **modularen 3-Schichten-Architektur** mit klarer Trennung der Verantwortlichkeiten:
-
-1. **Präsentationsschicht** - Benutzerinteraktion (CLI)
-2. **Netzwerkschicht** - SLCP-Protokoll und Messaging
-3. **Service-Schicht** - Discovery und Broadcast-Services
+Das SLCP Chat-System folgt einer **modularen 3-Schichten-Architektur**:
+1. **Präsentationsschicht**: CLI für Benutzerinteraktion
+2. **Netzwerkschicht**: SLCP-Protokollimplementierung
+3. **Service-Schicht**: Discovery-Service und Broadcast-Handling
 
 @section overall_architecture Gesamtarchitektur
-
-@startuml{system_architecture.png}
+@startuml
 !theme plain
 skinparam componentStyle rectangle
+skinparam monochrome true
 
 package "Client A" {
-    [CLI A] as CLIA
-    [Messenger A] as MSGA
-    [Discovery A] as DISCA
+    [CLI A] as CLIA <<UI>>
+    [Messenger A] as MSGA <<Network>>
+    [Discovery A] as DISCA <<Service>>
 }
 
-package "Client B" {
-    [CLI B] as CLIB  
-    [Messenger B] as MSGB
-    [Discovery B] as DISCB
-}
+cloud "UDP Broadcast\\n(Port 4000)" as BROAD
+cloud "Direct UDP\\n(Port 5000+)" as DIRECT
 
-package "Client C" {
-    [CLI C] as CLIC
-    [Messenger C] as MSGC
-    [Discovery C] as DISCC
-}
-
-cloud "UDP Broadcast\n(Port 4000)" as BROAD
-cloud "Direct UDP\n(Port 5000+)" as DIRECT
-
-CLIA <--> MSGA : IPC Queue
-MSGA <--> DISCA : IPC Queue
-
-CLIB <--> MSGB : IPC Queue  
-MSGB <--> DISCB : IPC Queue
-
-CLIC <--> MSGC : IPC Queue
-MSGC <--> DISCC : IPC Queue
-
-DISCA <--> BROAD
-DISCB <--> BROAD  
-DISCC <--> BROAD
-
-MSGA <--> DIRECT
-MSGB <--> DIRECT
-MSGC <--> DIRECT
+CLIA -r-> MSGA : IPC Queue\nui_to_net
+MSGA -r-> DISCA : IPC Queue\nnet_to_disc
+DISCA --> BROAD : JOIN/LEAVE/WHO
+MSGA --> DIRECT : MSG/IMG
 
 note right of BROAD
-  JOIN, LEAVE, WHO
-  Broadcasts
+  **Broadcast-Nachrichten**:
+  - JOIN
+  - LEAVE
+  - WHO
 end note
 
-note right of DIRECT
-  MSG, IMG
-  Unicast
+note left of DIRECT
+  **Unicast-Nachrichten**:
+  - MSG (Text)
+  - IMG (Bilder)
 end note
 @enduml
 
-@section process_architecture Prozessarchitektur
-
-Jeder Client besteht aus **drei separaten Prozessen**:
-
-@startuml{process_architecture.png}
+@section process_architecture Prozessmodell
+Jeder Client besteht aus drei Prozessen:
+@startuml
 !theme plain
+skinparam monochrome true
 
-participant "CLI Process" as CLI
-participant "Messenger Process" as MSG
-participant "Discovery Process" as DISC
+component "CLI Process" as CLI <<UI>>
+component "Messenger Process" as MSG <<Network>>
+component "Discovery Process" as DISC <<Service>>
 
-note over CLI
-  Benutzerinteraktion
-  Kommandozeile
-  Konfiguration
+CLI -> MSG : ui_to_net
+MSG -> CLI : net_to_ui
+MSG -> DISC : net_to_disc
+DISC -> MSG : disc_to_net
+DISC -> CLI : disc_to_ui
+
+note right of CLI
+  **Aufgaben**:
+  - Kommandointerpretation
+  - Nachrichtendarstellung
+  - Konfigurationsmanagement
 end note
-
-note over MSG  
-  SLCP-Protokoll
-  UDP-Kommunikation
-  Nachrichtenverarbeitung
-end note
-
-note over DISC
-  Broadcast-Handling
-  Teilnehmerverwaltung  
-  Discovery-Service
-end note
-
-CLI -> MSG : ui_to_net Queue
-MSG -> CLI : net_to_ui Queue
-MSG -> DISC : net_to_disc Queue  
-DISC -> MSG : disc_to_net Queue
-DISC -> CLI : disc_to_ui Queue
-
 @enduml
 
-@section ipc_communication IPC-Kommunikation
-
-Die Prozesskommunikation erfolgt über **Python Multiprocessing Queues**:
-
-@startuml{ipc_diagram.png}
+@section ipc_communication IPC-Queues
+@startuml
 !theme plain
-
-object "ui_to_net" as Q1 {
-  Type: Queue
-  Direction: CLI → Messenger
-  Content: Commands, Messages
+skinparam rectangle {
+    BackgroundColor White
+    BorderColor Black
 }
 
-object "net_to_ui" as Q2 {
-  Type: Queue  
-  Direction: Messenger → CLI
-  Content: Received Messages
+queue "ui_to_net" as Q1 {
+  [CLI Kommandos]
+  [Nachrichten]
 }
 
-object "net_to_disc" as Q3 {
-  Type: Queue
-  Direction: Messenger → Discovery  
-  Content: WHO requests
+queue "net_to_ui" as Q2 {
+  [Empfangene Nachrichten]
+  [Systemmeldungen]
 }
 
-object "disc_to_net" as Q4 {
-  Type: Queue
-  Direction: Discovery → Messenger
-  Content: KNOWUSERS responses
+queue "net_to_disc" as Q3 {
+  [WHO-Anfragen]
 }
 
-object "disc_to_ui" as Q5 {
-  Type: Queue
-  Direction: Discovery → CLI
-  Content: Status messages
+queue "disc_to_net" as Q4 {
+  [KNOWUSERS]
+  [Teilnehmerupdates]
 }
 
+queue "disc_to_ui" as Q5 {
+  [Statusmeldungen]
+}
+
+CLI -r-> Q1
+Q1 -r-> MSG
+MSG -r-> Q2
+Q2 -r-> CLI
+MSG -u-> Q3
+Q3 -u-> DISC
+DISC -l-> Q4
+Q4 -l-> MSG
+DISC -d-> Q5
+Q5 -d-> CLI
 @enduml
 
-@subsection queue_messages Queue-Nachrichten
-
-**ui_to_net Queue:**
-```python
+@subsection queue_examples Beispielnachrichten
+**Kommando-Queue (ui_to_net):**
+```json
 {"type": "WHO"}
-{"type": "MSG", "text": "Hallo", "target_ip": "192.168.1.42", "target_port": 5000, "handle": "Alice"}
-{"type": "IMG", "IP": "192.168.1.42", "PORT": 5000, "PFAD": "/path/to/image.jpg", "HANDLE": "Alice"}
-```
+{"type": "MSG", "target": "Alice", "text": "Hallo!"}
 
-**net_to_ui Queue:**
-```python
-{"type": "recv_msg", "sender": "Bob", "text": "Hallo zurück!"}
-{"type": "WHO_RESPONSE", "users": {"Bob": ("192.168.1.42", 5000)}}
-{"type": "JOIN", "handle": "Carol", "ip": "192.168.1.43", "port": 5001}
-{"type": "LEAVE", "handle": "Carol"}
-```
+{"type": "message", "from": "Bob", "text": "Hi!"}
+{"type": "userlist", "users": ["Alice", "Bob"]}
 
-@section network_layer Netzwerkschicht
 
-@startuml{network_layer.png}
+@section network_protocol Protokollstack
+@startuml
 !theme plain
+skinparam nodesep 10
 
-package "Messenger Module" {
-    [SLCP Parser] as PARSER
-    [UDP Handler] as UDP
-    [Message Router] as ROUTER
-    [Image Transfer] as IMG
+frame "Anwendungsschicht" {
+[SLCP-Parser]
+[Nachrichtenrouter]
 }
 
-package "Protocol Stack" {
-    [Application Layer] as APP
-    [UDP Transport] as TRANSPORT  
-    [IP Network] as NETWORK
+frame "Transportschicht" {
+[UDP-Sender/Empfänger]
 }
 
-PARSER --> UDP
-UDP --> ROUTER
-ROUTER --> IMG
+frame "Netzwerkschicht" {
+[IP-Handler]
+}
 
-APP --> TRANSPORT
-TRANSPORT --> NETWORK
-
-UDP --> TRANSPORT
-
-note right of PARSER
-  JOIN, LEAVE, WHO,
-  KNOWUSERS, MSG, IMG
-  Protocol parsing
-end note
+[SLCP-Parser] --> [Nachrichtenrouter]
+[Nachrichtenrouter] --> [UDP-Sender/Empfänger]
+[UDP-Sender/Empfänger] --> [IP-Handler]
 @enduml
 
 @section data_flow Datenfluss
 
-@subsection outbound_flow Ausgehende Nachrichten
-
-@startuml{outbound_flow.png}
+Ausgehende Nachrichten
+@startuml
 !theme plain
+skinparam monochrome true
 
 start
-:Benutzer gibt Befehl ein;
-:CLI parst Kommando;
-:Message wird in ui_to_net Queue gelegt;
-:Messenger empfängt Message;
-:SLCP-Nachricht wird formatiert;
-if (Broadcast?) then (ja)
-  :UDP Broadcast senden;
-else (nein)
-  :UDP Unicast senden;
+:CLI empfängt Nutzereingabe;
+if (Befehlsart?) then (Broadcast)
+:An Discovery senden;
+:UDP-Broadcast;
+else (Unicast)
+:Direkte UDP-Nachricht;
 endif
+:Logging;
 stop
-
 @enduml
 
-@subsection inbound_flow Eingehende Nachrichten
-
-@startuml{inbound_flow.png}
+Eingehende Nachrichten
+@startuml
 !theme plain
+skinparam monochrome true
 
 start
-:UDP-Paket empfangen;
-:SLCP-Nachricht parsen;
-if (Discovery-Nachricht?) then (ja)
-  :An Discovery weiterleiten;
-  :Discovery verarbeitet;
-  :Status an CLI senden;
-else (nein)
-  :Direkt an CLI weiterleiten;
-  :CLI zeigt Nachricht an;
+:UDP-Empfang;
+if (Nachrichtentyp?) then (Discovery)
+:Discovery verarbeitet;
+else (Nachricht)
+:CLI anzeigen;
 endif
+:Logging;
 stop
-
 @enduml
 
-@section threading_model Threading-Modell
+@section configuration Konfiguration
 
-@startuml{threading_model.png}
-!theme plain
-
-package "Main Process" {
-    [CLI Loop] as CLI_MAIN
-    [Message Display] as MSG_DISPLAY
-}
-
-package "Messenger Process" {  
-    [UDP Receiver] as UDP_RX
-    [Queue Handler] as QUEUE_H
-    [Message Sender] as MSG_TX
-}
-
-package "Discovery Process" {
-    [Broadcast Listener] as BC_LIST
-    [User Manager] as USER_MGR
-}
-
-CLI_MAIN --> MSG_DISPLAY : Thread
-UDP_RX --> QUEUE_H : Thread  
-BC_LIST --> USER_MGR : Thread
-
-note right of MSG_DISPLAY
-  Non-blocking message
-  display in CLI
-end note
-
-note right of UDP_RX
-  Continuous UDP
-  packet reception  
-end note
-
-note right of BC_LIST
-  Listen for broadcast
-  discovery messages
-end note
-
-@enduml
-
-@section configuration_management Konfigurationsverwaltung
-
-Die Konfiguration erfolgt über **TOML-Dateien**:
-
-```toml
+# config.toml
 [user]
 handle = "Alice"
 
-[network]  
-port_range = [5000, 5100]
-whoisport = 4000
+[network]
+base_port = 5000
+whois_port = 4000
 
-[behavior]
-autoreply = "Bin gerade nicht da!"
-imagepath = "./received_images/"
-```
+[paths]
+image_dir = "./received_images/"
 
-@section error_handling Fehlerbehandlung
+@subsection error_handling Fehlerbehandlung
 
-@startuml{error_handling.png}
-!theme plain
+Netzwerkfehler: Automatische Retry-Logik mit exponentiellem Backoff
 
-start
-:Netzwerk-Operation;
-if (Socket Error?) then (ja)
-  :Log Error;
-  :Retry mit Backoff;
-  if (Max Retries?) then (ja)
-    :Fehler an UI melden;
-    stop
-  else (nein)
-  endif
-else (nein)
-endif
-:Operation erfolgreich;
-stop
+Invalid Messages: Protokollierung und Verwerfung
 
-@enduml
+Resource Limits: Queue-Größenbeschränkungen
 
-@section scalability Skalierbarkeit
-
-Das System ist für **lokale Netzwerke** optimiert:
-
-- **Maximale Clients**: ~50-100 je nach Netzwerk
-- **Broadcast-Domain**: Ein Subnetz  
-- **Performance**: UDP-basiert für niedrige Latenz
-- **Resource Usage**: Minimal durch Multiprocessing
-
-@section security_considerations Sicherheitsaspekte
-
-@warning Das System implementiert **keine Verschlüsselung** und ist nur für vertrauenswürdige lokale Netzwerke geeignet.
-
-Mögliche Erweiterungen:
-- TLS-Verschlüsselung für MSG/IMG
-- Authentifizierung von Teilnehmern
-- Rate-Limiting für Broadcast-Messages
+@warning Sicherheitshinweis: Keine Verschlüsselung - nur für vertrauenswürdige Netzwerke!
 
 @author Entwicklerteam
 @date Sommersemester 2025
+@version 2.0
 */

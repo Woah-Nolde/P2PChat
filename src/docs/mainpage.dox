@@ -2,14 +2,12 @@
 @mainpage SLCP Chat-System - Technische Dokumentation
 
 @section intro_sec Einführung
-
 Das **Simple Local Chat Protocol (SLCP) Chat-System** ist eine dezentrale Peer-to-Peer-Anwendung für lokale Netzwerke. 
 Es ermöglicht die direkte Kommunikation zwischen Clients ohne zentrale Server-Infrastruktur.
 
 @image html architecture.png "Systemarchitektur" width=800px
 
-@section features_sec Hauptfunktionen
-
+@section features_sec Hauptfunktionen 
 - **Dezentrale Architektur**: Peer-to-Peer-Kommunikation ohne Server
 - **Textnachrichten**: Echtzeit-Nachrichtenaustausch
 - **Bildübertragung**: Versendung von Bilddateien
@@ -19,64 +17,29 @@ Es ermöglicht die direkte Kommunikation zwischen Clients ohne zentrale Server-I
 - **Plattformunabhängig**: Python-basierte Implementierung
 
 @section arch_sec Systemarchitektur
-
 Das System basiert auf einer **3-Schichten-Architektur**:
 
-@startuml{architecture_overview.png}
-!theme plain
-skinparam componentStyle rectangle
-
-package "Präsentationsschicht" {
-    [CLI Interface] as CLI
-    [Konfiguration] as Config
-}
-
-package "Netzwerkschicht" {
-    [Messenger] as MSG
-    [SLCP Protocol] as SLCP
-}
-
-package "Service-Schicht" {
-    [Discovery Service] as DISC
-    [Broadcast Handler] as BC
-}
-
-CLI --> MSG : IPC Queue
-MSG --> DISC : User Lookup
-DISC --> BC : UDP Broadcast
-MSG --> SLCP : Protocol Parsing
-Config --> CLI : TOML Settings
-
-note right of SLCP
-  JOIN, LEAVE, WHO,
-  KNOWUSERS, MSG, IMG
-end note
-
-@enduml
-
+/**
 @subsection components_sec Komponenten
-
-- @ref main.py "**Hauptmodul (main.py)**" - Koordiniert alle Komponenten und startet die Prozesse
-- @ref messenger.py "**Messenger (messenger.py)**" - Implementiert SLCP-Protokoll und Netzwerkkommunikation  
-- @ref discovery.py "**Discovery Service (discovery.py)**" - Verwaltet Teilnehmererkennung und Broadcast-Handling
-- @ref config_manager.py "**Konfiguration (config_manager.py)**" - Lädt und verwaltet TOML-Konfigurationsdateien
-- @ref cli.py "**CLI Interface (cli.py)**" - Kommandozeilenschnittstelle für Benutzerinteraktion
+- @ref main.py "**Hauptmodul (main.py)**" - Koordiniert alle Komponenten
+- @ref messenger.py "**Messenger (messenger.py)**" - Implementiert SLCP-Protokoll  
+- @ref discovery.py "**Discovery Service (discovery.py)**" - Teilnehmererkennung
+- @ref config_manager.py "**Konfiguration (config_manager.py)**" - TOML-Verwaltung
+- @ref cli.py "**CLI Interface (cli.py)**" - Benutzerinteraktion
 
 @section protocol_sec SLCP-Protokoll
+Das **Simple Local Chat Protocol** definiert:
 
-Das **Simple Local Chat Protocol** definiert folgende Nachrichtentypen:
-
-| Befehl | Funktion | Beispiel |
-|--------|----------|----------|
-| JOIN   | Anmeldung im Chat | `JOIN Alice 5000` |
-| LEAVE  | Abmeldung aus Chat | `LEAVE Alice` |
-| WHO    | Teilnehmersuche | `WHO` |
-| KNOWUSERS | Teilnehmerantwort | `KNOWUSERS Alice 192.168.1.42 5000` |
-| MSG    | Textnachricht | `MSG Bob "Hallo Welt"` |
-| IMG    | Bildnachricht | `IMG Bob 1024` |
+| Befehl     | Funktion               | Beispiel                     |
+|------------|------------------------|------------------------------|
+| JOIN       | Anmeldung              | `JOIN Alice 5000`            |
+| LEAVE      | Abmeldung              | `LEAVE Alice`                |
+| WHO        | Teilnehmersuche        | `WHO`                        |
+| KNOWUSERS  | Teilnehmerantwort      | `KNOWUSERS Alice 192.168.1.42 5000` |
+| MSG        | Textnachricht          | `MSG Bob "Hallo Welt"`       |
+| IMG        | Bildnachricht          | `IMG Bob 1024`               |
 
 @section usage_sec Schnellstart
-
 1. **Konfiguration**: Bearbeite `config.toml`
 2. **Start**: `python3 main.py`
 3. **Teilnehmer finden**: `who`
@@ -84,20 +47,17 @@ Das **Simple Local Chat Protocol** definiert folgende Nachrichtentypen:
 5. **Bild senden**: `img <handle> <pfad>`
 
 @section install_sec Installation
-
-Siehe @ref installation_page für detaillierte Installationsanweisungen.
+@verbinclude INSTALL.md
 
 @section dev_sec Entwicklung
-
 - **Sprache**: Python 3.8+
 - **Protokoll**: UDP/TCP basiert
-- **IPC**: Python Multiprocessing Queues
+- **IPC**: Multiprocessing Queues
 - **Konfiguration**: TOML-Format
-- **Dokumentation**: Doxygen + PlantUML
+- **Dokumentation**: Doxygen + Graphviz
 
 @section license_sec Lizenz
-
-Dieses Projekt wurde im Rahmen des Kurses "Betriebssysteme und Rechnernetze" entwickelt.
+@verbinclude LICENSE
 
 @author Ihr Team
 @date Sommersemester 2025
@@ -106,5 +66,4 @@ Dieses Projekt wurde im Rahmen des Kurses "Betriebssysteme und Rechnernetze" ent
 @see @ref architecture_page "Systemarchitektur"
 @see @ref protocol_page "SLCP-Protokoll"  
 @see @ref usage_page "Bedienungsanleitung"
-@see @ref examples_page "Code-Beispiele"
 */

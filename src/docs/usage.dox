@@ -1,0 +1,46 @@
+/*! \page usage Bedienungsanleitung
+\section installation Installation
+\subsection voraussetzungen Voraussetzungen
+Stellen Sie sicher, dass die folgenden Pakete installiert sind:
+\code{.sh}
+sudo apt update
+sudo apt install python3 python3-pip
+\endcode
+
+\subsection klonen Projekt klonen und einrichten
+Klonen Sie das Repository und installieren Sie die Abhängigkeiten:
+\code{.sh}
+git clone https://github.com/Woah-Nolde/P2PChat
+cd p2p-chat
+pip install -r requirements.txt
+\endcode
+
+\section konfiguration Konfiguration
+Bearbeiten Sie die Konfigurationsdatei `config.toml` gemäß Ihren Bedürfnissen:
+\code{.toml}
+handle = "Ihr_Benutzername"
+port = 5000  # Port-Bereich für UDP-Kommunikation
+whoisport = 4000  # Port für Discovery-Broadcasts
+autoreply = "Ich bin gerade nicht erreichbar."
+imagepath = "./empfangene_bilder"  # Pfad für gespeicherte Bilder
+\endcode
+
+\section nutzung Nutzung
+Starten Sie das Programm mit:
+\code{.sh}
+python3 main.py
+\endcode
+
+\subsection befehlsreferenz Befehlsreferenz (CLI)
+- \b /who: Liste aller bekannten Nutzer anzeigen
+- \b /msg <Nutzer> <Nachricht>: Nachricht senden
+- \b /img <Nutzer> <Bildpfad>: Bild senden
+- \b /leave: Chat verlassen
+
+\subsection hinweise Hinweise
+- Der Discovery-Dienst wird automatisch beim ersten Start gestartet.
+- Bei wiederholtem Start wird der bestehende Discovery-Dienst genutzt.
+- Empfangene Bilder werden unter `imagepath` gespeichert.
+
+Für weitere Details siehe \ref README.md oder die \ref architektur "Projektarchitektur".
+*/
