@@ -38,8 +38,8 @@ imagepath = "./received_images"
 ## Systemarchitektur
 ```mermaid
 graph TD
-    A[main.py\nCLI-UI] <-->|Unix Sockets| B[messenger.py\nNetzwerk]
-    B <-->|UDP Broadcast| C[discovery.py]
+    A[main.py\nCLI-UI] <-->|IPC/Queues| B[messenger.py\nNetzwerk]
+    B <-->|UDP Broadcast/IPC| C[discovery.py]
     B -->|Unicast| D[Andere Clients]
     A <-->|read/write| E[config.toml]
 ```
@@ -47,9 +47,9 @@ graph TD
 **Prozessaufteilung**:
 | Prozess          | Verantwortlichkeit               | Protokolle          |
 |------------------|----------------------------------|---------------------|
-| `main.py`        | Nutzerinteraktion                | IPC (Sockets/Pipes) |
-| `messenger.py`   | Nachrichtenaustausch             | UDP Unicast/Broadcast |
-| `discovery.py`   | Teilnehmererkennung              | UDP Broadcast       |
+| `main.py`        | Nutzerinteraktion                | IPC/Broadcast (Sockets/Queues) |
+| `messenger.py`   | Nachrichtenaustausch             | UDP/IPC Unicast/Broadcast |
+| `discovery.py`   | Teilnehmererkennung              | UDP/IPC Broadcast       |
 
 ---
 
@@ -62,10 +62,12 @@ python3 main.py
 **CLI-Befehle**:
 | Befehl          | Aktion                           | Beispiel            |
 |-----------------|----------------------------------|---------------------|
-| `/who`          | Aktive Nutzer anzeigen           | `/who`              |
-| `/msg <user> <text>` | Nachricht senden          | `/msg Bob Hallo!`   |
+| `/who`          | Aktive Nutzer anzeigen           | `/Entdeckte Nutzer: Alice`              |
+| `/send <user> <text>` | Nachricht senden          | `/send Bob Hallo!`   |
 | `/img <user> <path>` | Bild senden               | `/img Bob ~/pic.jpg`|
-| `/leave`        | Chat verlassen                   | `/leave`            |
+| `/quit`        | Chat verlassen                   | `/Alice hat den Chat verlassen`            |
+| `/abwesend`        | [Abwesend-Modus]                   | `/Abwesend-Modus`            |
+
 
 ---
 
@@ -74,7 +76,6 @@ python3 main.py
 |--------------|---------------------------------|----------------------|
 | `JOIN`       | `JOIN <handle> <port>`          | `JOIN Alice 5000`    |
 | `LEAVE`      | `LEAVE <handle>`                | `LEAVE Alice`        |
-| `WHO`        | `WHO`                           | `WHO`                |
 | `MSG`        | `MSG <handle> <text>`           | `MSG Bob "Hallo"`    |
 | `IMG`        | `IMG <handle> <size>` + Binärdaten | `IMG Bob 2048`    |
 
@@ -92,6 +93,20 @@ python3 main.py
 | Team-Mitglied 1  | Netzwerkschicht      | messenger.py        |
 | Team-Mitglied 2  | Discovery-Dienst     | discovery.py        |
 | Team-Mitglied 3  | Benutzeroberfläche   | main.py             |
+
+
+## Logo
+<p align="center">
+  <img src=".src/image/Logo/Logo.png" alt="Projektlogo" width="300" />
+</p>
+
+## Screenshot der CLI
+![CLI-Benutzeroberfläche](.src/image/BSRN_Screenshots/Screenshot_1.jpg)
+![CLI-Benutzeroberfläche](.src/image/BSRN_Screenshots/Screenshot_2.jpg)
+![CLI-Benutzeroberfläche](.src/image/BSRN_Screenshots/Screenshot_3.jpg)
+![CLI-Benutzeroberfläche](.src/image/BSRN_Screenshots/Screenshot_4.jpg)
+![CLI-Benutzeroberfläche](.src/image/BSRN_Screenshots/Screenshot_5jpg)
+![CLI-Benutzeroberfläche](.src/image/BSRN_Screenshots/Screenshot_6.jpg)
 
 *Lizenz: MIT – Frankfurt University of Applied Sciences, 2025*
 ```

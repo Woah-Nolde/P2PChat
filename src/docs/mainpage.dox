@@ -1,6 +1,9 @@
 /**
 @mainpage SLCP Chat-System - Technische Dokumentation
 
+![Projektlogo](Logo.png){ width=200px }
+
+
 @section intro_sec Einführung
 Das **Simple Local Chat Protocol (SLCP) Chat-System** ist eine dezentrale Peer-to-Peer-Anwendung für lokale Netzwerke. 
 Es ermöglicht die direkte Kommunikation zwischen Clients ohne zentrale Server-Infrastruktur.

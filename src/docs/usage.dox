@@ -1,5 +1,8 @@
-/*! \page usage Bedienungsanleitung
+/*!
+\page usage Bedienungsanleitung
+
 \section installation Installation
+
 \subsection voraussetzungen Voraussetzungen
 Stellen Sie sicher, dass die folgenden Pakete installiert sind:
 \code{.sh}
@@ -16,31 +19,170 @@ pip install -r requirements.txt
 \endcode
 
 \section konfiguration Konfiguration
-Bearbeiten Sie die Konfigurationsdatei `config.toml` gemäß Ihren Bedürfnissen:
+
+\subsection config_bearbeitung Konfigurationsdatei bearbeiten
+Die Konfiguration erfolgt über die Datei `config.toml`. Bearbeiten Sie diese gemäß Ihren Bedürfnissen:
+
 \code{.toml}
+[user]
 handle = "Ihr_Benutzername"
-port = 5000  # Port-Bereich für UDP-Kommunikation
-whoisport = 4000  # Port für Discovery-Broadcasts
 autoreply = "Ich bin gerade nicht erreichbar."
-imagepath = "./empfangene_bilder"  # Pfad für gespeicherte Bilder
+
+[network]
+port_range = [5000, 5100]  # Port-Bereich für UDP-Kommunikation
+whoisport = 4000           # Port für Discovery-Broadcasts
+
+[files]
+imagepath = "./src/image"  # Pfad für gespeicherte Bilder
 \endcode
 
+\subsection config_cli Konfiguration über CLI
+Das Programm bietet auch eine interaktive Konfiguration:
+- `config show` - Aktuelle Konfiguration anzeigen
+- `config edit` - Interaktive Konfigurationsbearbeitung
+- `config reload` - Konfiguration neu laden
+
 \section nutzung Nutzung
+
+\subsection programmstart Programmstart
 Starten Sie das Programm mit:
 \code{.sh}
+cd src
 python3 main.py
 \endcode
 
 \subsection befehlsreferenz Befehlsreferenz (CLI)
-- \b /who: Liste aller bekannten Nutzer anzeigen
-- \b /msg <Nutzer> <Nachricht>: Nachricht senden
-- \b /img <Nutzer> <Bildpfad>: Bild senden
-- \b /leave: Chat verlassen
 
-\subsection hinweise Hinweise
-- Der Discovery-Dienst wird automatisch beim ersten Start gestartet.
-- Bei wiederholtem Start wird der bestehende Discovery-Dienst genutzt.
-- Empfangene Bilder werden unter `imagepath` gespeichert.
+\subsubsection discovery_befehle Discovery und Nutzer
+- \b who: Liste aller aktiven Nutzer im Netzwerk suchen
+- \b users: Bereits bekannte Nutzer anzeigen
 
-Für weitere Details siehe \ref README.md oder die \ref architektur "Projektarchitektur".
+\subsubsection kommunikation Kommunikation
+- \b send \<handle\> \<nachricht\>: Textnachricht an Nutzer senden
+  \code{.sh}
+  send Alice Hallo, wie geht es dir?
+  \endcode
+
+- \b img \<handle\> \<pfad_zum_bild\>: Bild an Nutzer senden
+  \code{.sh}
+  img Bob ./bilder/urlaubsfoto.jpg
+  \endcode
+
+\subsubsection status_verwaltung Status und Verwaltung
+- \b abwesend: Abwesenheitsmodus aktivieren (Autoreply)
+- \b name: Handle (Benutzername) ändern
+- \b quit: Chat verlassen und Programm beenden
+
+\subsubsection konfiguration_befehle Konfiguration
+- \b config: Konfigurationshilfe anzeigen
+- \b config show: Aktuelle Konfiguration anzeigen
+- \b config edit: Interaktive Konfigurationsbearbeitung
+- \b config reload: Konfiguration neu laden
+
+\section funktionen Spezielle Funktionen
+
+\subsection autoreply Abwesenheitsmodus (Autoreply)
+Der Abwesenheitsmodus ermöglicht automatische Antworten:
+1. Aktivierung mit dem Befehl `abwesend`
+2. Automatische Antwort mit konfigurierter Nachricht
+3. Deaktivierung durch Drücken der Enter-Taste
+
+\subsection handle_kollision Handle-Kollisionen
+Bei doppelten Handles wird automatisch eine Nummer angehängt:
+- Alice → Alice2 (bei Kollision)
+- Alice2 → Alice3 (bei weiterer Kollision)
+
+\subsection bildtransfer Bildübertragung
+- Maximale Bildgröße: 50 KB
+- Unterstützte Formate: Alle binären Formate
+- Empfangene Bilder werden in `./src/image/` gespeichert
+- Dateinamensformat: `empfangen_<handle>_<timestamp>.jpg`
+
+\section protokoll SLCP-Protokoll
+
+\subsection nachrichten_format Nachrichtenformat
+Das Simple Local Chat Protocol (SLCP) verwendet folgende Formate:
+
+\subsubsection discovery_protokoll Discovery-Nachrichten
+- \b JOIN \<Handle\> \<Port\>: Beim Netzwerk anmelden
+- \b LEAVE \<Handle\>: Netzwerk verlassen
+- \b WHO: Aktive Nutzer abfragen
+- \b KNOWUSERS \<Liste\>: Antwort auf WHO-Anfrage
+
+\subsubsection chat_protokoll Chat-Nachrichten
+- \b MSG \<Handle\> \<Nachricht\>: Textnachricht
+- \b IMG \<Handle\> \<Größe\>: Bild-Header vor Binärdaten
+
+\section netzwerk Netzwerk-Architektur
+
+\subsection ports Verwendete Ports
+- \b 4000: Discovery-Service (JOIN/LEAVE/WHO)
+- \b 4001: Discovery-Events (USERJOIN/USERLEAVE broadcasts)
+- \b 5000-5100: Dynamische Portzuweisung für Chat-Kommunikation
+
+\subsection discovery_dienst Discovery-Dienst
+- Automatischer Start beim ersten Programmstart
+- Singleton-Pattern verhindert mehrfache Instanzen
+- Broadcast-basierte Nutzer-Erkennung im LAN
+
+\section troubleshooting Problembehandlung
+
+\subsection haeufige_probleme Häufige Probleme
+
+\subsubsection port_belegt Port bereits belegt
+\code{.sh}
+[Discovery] Port 4000 bereits belegt - Discovery läuft bereits
+\endcode
+**Lösung:** Discovery-Dienst läuft bereits. Normaler Betrieb.
+
+\subsubsection kein_freier_port Kein freier Port
+\code{.sh}
+Kein freier UDP-Port im Bereich 5000-5010 gefunden!
+\endcode
+**Lösung:** Port-Bereich in `config.toml` erweitern.
+
+\subsubsection bild_zu_gross Bild zu groß
+\code{.sh}
+[Fehler] Bild zu groß (75000 Bytes). Maximal erlaubt: 512 Bytes.
+\endcode
+**Lösung:** Bild verkleinern oder komprimieren.
+
+\subsection debugging Debug-Informationen
+Das Programm gibt detaillierte Statusmeldungen aus:
+- `[Discovery]`: Discovery-Service-Meldungen
+- `[Nachricht]`: Eingehende Textnachrichten
+- `[Sender]`/`[Empfänger]`: Bildübertragung
+- `[Fehler]`: Fehlermeldungen
+
+\section erweiterte_nutzung Erweiterte Nutzung
+
+\subsection mehrere_instanzen Mehrere Instanzen
+Für Tests können mehrere Instanzen mit unterschiedlichen Handles gestartet werden:
+\code{.sh}
+# Terminal 1
+python3 main.py  # Alice
+
+# Terminal 2 (anderen Handle in config.toml setzen)
+python3 main.py  # Bob
+\endcode
+
+\subsection netzwerk_diagnose Netzwerk-Diagnose
+Zur Diagnose von Verbindungsproblemen:
+1. `who` - Aktive Nutzer suchen
+2. `users` - Bekannte Nutzer auflisten
+3. Ping-Test zu anderen Rechnern im LAN
+
+\section hinweise Wichtige Hinweise
+
+- Das System arbeitet nur im lokalen Netzwerk (LAN)
+- IPv6 wird teilweise unterstützt, IPv4 wird bevorzugt
+- Nachrichten sind auf 512 Zeichen begrenzt
+- Der Discovery-Service muss nur einmal pro Netzwerk laufen
+- Empfangene Bilder werden automatisch gespeichert
+- Bei Programmabbruch (Ctrl+C) wird automatisch LEAVE gesendet
+
+\section siehe_auch Siehe auch
+- \ref architektur "Projektarchitektur"
+- \ref README.md "README-Datei"
+- \ref protokoll "SLCP-Protokollspezifikation"
 */

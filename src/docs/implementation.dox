@@ -154,7 +154,7 @@ handle = "DefaultUser"
 autoreply = "Bin gerade nicht da"
 
 [network]
-port_range = [5000, 5100]
+port_range = [5000, 5010]
 whoisport = 4000
 
 [files]
