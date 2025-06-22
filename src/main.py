@@ -125,10 +125,9 @@ def send_join(handle, port):
 
 ## @brief Sendet LEAVE-Nachricht an alle    
 # @protocol LEAVE <Handle>
-def send_leave(handle, whoisport):
+def send_leave(handle, whoisport, known_users):
 # @param handle Nutzerhandle
 # @param whoisport Discovery-Port
-    global known_users
     message = f"LEAVE {handle}"
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
         s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -250,7 +249,7 @@ Config-Befehle:
                     handle = config["user"]["handle"]
                     
                     if old_handle != handle:
-                        send_leave(old_handle, whoisport)
+                        send_leave(old_handle, whoisport, known_users)
                         send_join(handle, port)
                         print(f"\n[Info] Handle wurde von '{old_handle}' zu '{handle}' geändert")
                     print("[Info] Konfiguration aktualisiert. Netzwerkänderungen benötigen Neustart.")
@@ -268,7 +267,7 @@ Config-Befehle:
 
 
             elif command == "quit":
-                send_leave(handle, whoisport)
+                send_leave(handle, whoisport, known_users)
                 print("Tschüss!")
                 time.sleep(0.5)
                 p1.terminate()
@@ -277,7 +276,7 @@ Config-Befehle:
 
             elif command == "name":
                 neuer_name = input("Neuer Handle: ").strip()
-                send_leave(handle, whoisport)
+                send_leave(handle, whoisport, known_users)
                 config = load_config()
                 config["user"]["handle"] = neuer_name
                 save_config(config)
@@ -292,7 +291,7 @@ Config-Befehle:
         except KeyboardInterrupt:
                    
             
-             send_leave(handle, whoisport)
+             send_leave(handle, whoisport, known_users)
             
              print("\n[Client] Abbruch mit Strg+C. LEAVE gesendet.")
              p1.terminate()
