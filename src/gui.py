@@ -175,6 +175,11 @@ class ReaderThread(QThread):
                     else:
                         self.new_log.emit(f"[Bild von {sender} konnte nicht geladen werden]")
 
+                elif typ == "TXT":
+                    sender = msg.get("handle", "System")
+                    text = msg.get("text", "")
+                    self.new_log.emit(f"[{sender}] {text}")
+
                 else:
                     # Andere Nachrichten evtl. hier behandeln
                     pass

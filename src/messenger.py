@@ -192,6 +192,14 @@ def receive_messages(my_port, net_to_ui):
                     with open(img_filename, "wb") as f:
                         f.write(img_data[:expected_img[1]])
                     print(f"[Empfänger] Bild empfangen von {addr} → gespeichert als {img_filename}")
+
+                    if net_to_ui:
+                        net_to_ui.put({
+                            "type": "TXT",
+                            "text": f"Bild empfangen von {handle} → gespeichert als {img_filename}",
+                            "handle": handle
+                        })
+
                     expected_img = None
                     img_data = b""
             continue
