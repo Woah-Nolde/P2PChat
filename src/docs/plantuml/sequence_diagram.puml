@@ -1,162 +1,178 @@
 # docs/plantuml/sequence_diagram.puml
 @startuml sequence_diagram
 !theme plain
-title SLCP Protokoll - Vollständiger Ablauf
+title SLCP Protokoll - Tatsächlicher Ablauf
 
-participant "Alice" as A
-participant "Bob" as B  
-participant "Discovery A" as DA
-participant "Discovery B" as DB
+participant "CLI (main.py)" as CLI
+participant "Messenger Process" as MSG
+participant "Discovery Process" as DISC
+participant "Remote User" as REMOTE
 
 == Initialization ==
-A -> DA : START Discovery
-B -> DB : START Discovery
+CLI -> CLI : load_config()
+CLI -> MSG : Process(network_main)
+CLI -> DISC : Process(discoveryloop)
+CLI -> CLI : send_join(handle, port)
 
 == Join Process ==
-A -> DA : JOIN Alice 5000
-note right: Broadcast to 255.255.255.255:4000
-DA -> DB : JOIN Alice 5000 [Broadcast]
-DB -> B : [Notification] Alice joined
-
-B -> DB : JOIN Bob 5001  
-note right: Broadcast to 255.255.255.255:4000
-DB -> DA : JOIN Bob 5001 [Broadcast]
-DA -> A : [Notification] Bob joined
+CLI -> DISC : JOIN Alice 5000 [Broadcast zu 255.255.255.255:4000]
+DISC -> DISC : clients[Alice] = (ip, port)
+DISC -> MSG : USERJOIN Alice ip port [Broadcast zu 4001]
+MSG -> CLI : {"type": "JOIN", "handle": "Alice"} [via net_to_ui Queue]
 
 == Discovery Process ==
-A -> DA : WHO
-note right: Find all users
-DA -> DB : WHO [Broadcast]
-DB -> DA : KNOWUSERS Bob 192.168.1.42 5001
-DA -> A : KNOWUSERS Bob 192.168.1.42 5001
+CLI -> MSG : {"type": "WHO"} [via ui_to_net Queue]
+MSG -> DISC : WHO [Broadcast zu 255.255.255.255:4000]
+DISC -> MSG : KNOWUSERS Alice ip port [Response]
+MSG -> CLI : {"type": "WHO_RESPONSE", "users": {...}} [via net_to_ui Queue]
 
 == Direct Messaging ==
-A -> B : MSG Bob "Hallo, wie geht's?" [Direct UDP]
-note right: Direct P2P communication
-B -> A : MSG Alice "Gut, danke!" [Direct UDP]
+CLI -> MSG : {"type": "MSG", "text": "Hallo", "target_ip": ip} [via ui_to_net Queue]
+MSG -> REMOTE : MSG Alice Hallo [Direct UDP]
+REMOTE -> MSG : MSG Bob Antwort [Direct UDP]
+MSG -> CLI : {"type": "recv_msg", "sender": "Bob"} [via net_to_ui Queue]
 
 == Image Transfer ==
-A -> B : IMG Bob 2048 [Direct UDP]
-note right: Image size in bytes
-A -> B : [Binary Data: 2048 bytes] [Direct UDP]
-B -> B : Save image locally
+CLI -> MSG : {"type": "IMG", "IP": ip, "PFAD": "bild.jpg"} [via ui_to_net Queue]
+MSG -> REMOTE : IMG Alice 2048 [Header]
+MSG -> REMOTE : [Binary Data: 2048 bytes] [Chunked]
+REMOTE -> MSG : [Image saved locally]
 
-== Absence Mode ==  
-B -> B : Enable absence mode
-A -> B : MSG Bob "Bist du da?"
-B -> A : MSG Alice "Bin gerade nicht da!" [Auto-reply]
+== Absence Mode ==
+CLI -> CLI : abwesend = True
+CLI -> MSG : {"type": "condition", "abwesend": True} [via ui_to_net Queue]
+REMOTE -> MSG : MSG Bob Nachricht
+MSG -> CLI : {"type": "condition", "sender": "Bob"} [via net_to_ui Queue]
+CLI -> MSG : Autoreply via ui_to_net Queue
 
 == Leave Process ==
-A -> DA : LEAVE Alice
-DA -> DB : LEAVE Alice [Broadcast]
-DB -> B : [Notification] Alice left
-A -> B : LEAVE Alice [Direct to known users]
+CLI -> CLI : send_leave(handle, whoisport, known_users)
+CLI -> DISC : LEAVE Alice [Broadcast]
+DISC -> MSG : USERLEAVE Alice [Broadcast zu 4001]
+MSG -> CLI : {"type": "LEAVE", "handle": "Alice"} [via net_to_ui Queue]
 
 @enduml
 
 # docs/plantuml/class_diagram.puml  
 @startuml class_diagram
 !theme plain
-title SLCP Chat-System - Klassendiagramm
+title SLCP Chat-System - Tatsächliche Struktur
 
-package "Main Module" {
-    class MainController {
-        +handle: str
-        +port: int
-        +known_users: dict
-        +abwesend: bool
-        --
+package "Main Module (main.py)" {
+    class MainFunctions <<functions>> {
         +main()
         +cli_loop()
         +send_join(handle, port)
-        +send_leave(handle, port)
+        +send_leave(handle, whoisport, known_users)
         +show_net_and_disc_messages()
         +find_free_port(start, end)
         +get_own_ip()
+        +print_prompt()
+        --
+        Global Variables:
+        +handle: str
+        +abwesend: bool
+        +known_users: dict
     }
 }
 
-package "Network Layer" {
-    class Messenger {
-        +port: int
-        +socket: UDP_Socket
+package "Network Module (messenger.py)" {
+    class MessengerFunctions <<functions>> {
+        +network_main(queues, port)
+        +receive_messages(port, net_to_ui)
+        +discovery_listener(net_to_ui, port)
+        +send_msg(ip, port, handle, text)
+        +send_img(ip, port, filename, handle)
+        +discover_users()
+        +parse_slcp(message)
+        +parse_knownusers(response)
         --
-        +network_main()
-        +handle_incoming()
-        +send_message()
-        +send_image()
-        +parse_slcp()
-    }
-    
-    class SLCPProtocol {
-        --
-        +parse_join(msg)
-        +parse_msg(msg)  
-        +parse_img(msg)
-        +format_message(type, params)
-        +validate_message(msg)
+        Global Variables:
+        +abwesend: bool
     }
 }
 
-package "Discovery Service" {
-    class DiscoveryService {
-        +whoisport: int
-        +users: dict
-        +socket: UDP_Socket
+package "Discovery Module (discovery.py)" {
+    class DiscoveryFunctions <<functions>> {
+        +discoveryloop(queues, port)
+        +ensure_singleton(port, queue)
         --
-        +discoveryloop()
-        +handle_join(handle, ip, port)
-        +handle_leave(handle)
-        +handle_who()
-        +broadcast_response()
+        Local Variables:
+        +clients: dict
     }
 }
 
-package "Configuration" {
-    class ConfigManager {
-        +config_file: str
-        +config: dict
-        --
-        +load_config()
-        +save_config()
+package "Configuration Module (config_manager.py)" {
+    class ConfigFunctions <<functions>> {
+        +load_config(path)
+        +save_config(config, path)
+        +show_config(config)
         +edit_config()
-        +handle_autoreply()
-    }
-}
-
-package "Communication" {
-    class IPCQueue {
-        +queue: Queue
+        +parse_toml_type(value)
+        +lookup_handle(handle)
+        +save_image(handle, data)
+        +handle_autoreply(ip, port, config)
         --
-        +put(message)
-        +get()
-        +empty()
+        Global Variables:
+        +known_users: dict
+        +conf_file: str
     }
 }
 
-MainController --> Messenger : uses
-MainController --> DiscoveryService : uses  
-MainController --> ConfigManager : uses
-MainController --> IPCQueue : uses
+package "IPC Communication" {
+    class IPCQueues <<multiprocessing>> {
+        +ui_to_net: Queue
+        +net_to_ui: Queue
+        +net_to_disc: Queue
+        +disc_to_net: Queue
+        +disc_to_ui: Queue
+    }
+}
 
-Messenger --> SLCPProtocol : uses
-Messenger --> IPCQueue : communicates
+package "Process Management" {
+    class ProcessStructure <<multiprocessing>> {
+        +Main Process: CLI + show_net_and_disc_messages
+        +Network Process: messenger.network_main
+        +Discovery Process: discovery.discoveryloop
+    }
+}
 
-DiscoveryService --> IPCQueue : communicates
+MainFunctions --> MessengerFunctions : uses via Process + Queues
+MainFunctions --> DiscoveryFunctions : uses via Process + Queues
+MainFunctions --> ConfigFunctions : uses directly
+MainFunctions --> IPCQueues : communicates via
 
-note right of MainController
-  Koordiniert alle Komponenten
-  Verwaltet CLI-Interface
+MessengerFunctions --> IPCQueues : communicates via
+DiscoveryFunctions --> IPCQueues : communicates via
+ConfigFunctions --> IPCQueues : not used directly
+
+ProcessStructure --> IPCQueues : uses for IPC
+ProcessStructure --> MainFunctions : runs in main process
+ProcessStructure --> MessengerFunctions : runs in separate process
+ProcessStructure --> DiscoveryFunctions : runs in separate process
+
+note right of MainFunctions
+  Funktionsbasiert, nicht objektorientiert
+  Globale Variablen für Zustand
+  CLI-Interface im Hauptprozess
 end note
 
-note right of Messenger
-  Implementiert SLCP-Protokoll
-  Verwaltet UDP-Kommunikation
+note right of MessengerFunctions
+  Läuft in separatem Prozess
+  Handhabt SLCP-Protokoll
+  Threads für Empfang und Discovery
 end note
 
-note right of DiscoveryService  
+note right of DiscoveryFunctions
+  Singleton-Prozess pro Host
   Broadcast-basierte Nutzerermittlung
-  Singleton pro Host
+  Verwaltet clients-Dictionary lokal
+end note
+
+note right of IPCQueues
+  Multiprocessing.Queue für IPC
+  Keine geteilten Objekte
+  JSON-ähnliche Nachrichten
 end note
 
 @enduml
@@ -164,7 +180,7 @@ end note
 # docs/plantuml/communication_flow.puml
 @startuml communication_flow
 !theme plain
-title IPC-Kommunikationsfluss
+title Tatsächlicher IPC-Kommunikationsfluss
 
 queue "ui_to_net" as Q1
 queue "net_to_ui" as Q2  
@@ -172,29 +188,84 @@ queue "net_to_disc" as Q3
 queue "disc_to_net" as Q4
 queue "disc_to_ui" as Q5
 
-participant "CLI" as CLI
-participant "Messenger" as MSG
-participant "Discovery" as DISC
+participant "Main Process\n(CLI + show_messages)" as MAIN
+participant "Network Process\n(messenger.py)" as NET
+participant "Discovery Process\n(discovery.py)" as DISC
 
 == User sends message ==
-CLI -> Q1 : {"type": "MSG", "text": "Hello", "target": "Bob"}
-Q1 -> MSG : Dequeue message
-MSG -> MSG : Format SLCP message
-MSG -> Bob : UDP: "MSG Bob Hello"
+MAIN -> Q1 : {"type": "MSG", "text": "Hello", "target_ip": "192.168.1.42", "target_port": 5001, "handle": "Alice"}
+Q1 -> NET : ui_to_net.get()
+NET -> NET : send_msg(ip, port, handle, text)
+NET -> RemoteUser : UDP: "MSG Alice Hello"
 
 == User requests discovery ==  
-CLI -> Q1 : {"type": "WHO"}
-Q1 -> MSG : Dequeue WHO request
-MSG -> Q3 : Forward WHO to discovery
-Q3 -> DISC : Process WHO request
-DISC -> DISC : Broadcast WHO message
-DISC -> Q4 : Response with user list
-Q4 -> MSG : Receive user list
-MSG -> Q2 : Forward to UI
-Q2 -> CLI : Display users
+MAIN -> Q1 : {"type": "WHO"}
+Q1 -> NET : ui_to_net.get()
+NET -> NET : discover_users()
+NET -> DISC : WHO [Broadcast zu 255.255.255.255:4000]
+DISC -> NET : KNOWUSERS Alice ip port [Response]
+NET -> Q2 : {"type": "WHO_RESPONSE", "users": {...}}
+Q2 -> MAIN : net_to_ui.get() in show_messages thread
 
 == Incoming message ==
-Bob -> MSG : UDP: "MSG Alice Hi!"
-MSG -> MSG : Parse SLCP message  
-MSG -> Q2 : {"type": "recv_msg", "sender": "Bob", "text": "Hi!"}
-Q2 -> CLI
+RemoteUser -> NET : UDP: "MSG Bob Hi!"
+NET -> NET : parse_slcp(message)
+NET -> Q2 : {"type": "recv_msg", "sender": "Bob", "text": "Hi!"}
+Q2 -> MAIN : show_messages thread displays message
+
+== User joins network ==
+MAIN -> DISC : send_join() [Broadcast zu 255.255.255.255:4000]
+DISC -> DISC : clients[handle] = (ip, port)
+DISC -> NET : USERJOIN handle ip port [Broadcast zu 4001]
+NET -> Q2 : {"type": "JOIN", "handle": handle, "ip": ip, "port": port}
+Q2 -> MAIN : show_messages thread updates known_users
+
+== Image transfer ==
+MAIN -> Q1 : {"type": "IMG", "IP": ip, "PORT": port, "PFAD": "bild.jpg", "HANDLE": "Alice"}
+Q1 -> NET : ui_to_net.get()
+NET -> NET : send_img(ip, port, filename, handle)
+NET -> RemoteUser : IMG Alice 2048 [Header + Binary Data]
+
+== Absence mode ==
+MAIN -> Q1 : {"type": "condition", "abwesend": True}
+Q1 -> NET : ui_to_net.get()
+NET -> NET : abwesend = True
+RemoteUser -> NET : MSG Bob Nachricht
+NET -> Q2 : {"type": "condition", "sender": "Bob", "text": autoreply}
+Q2 -> MAIN : show_messages triggers autoreply
+MAIN -> Q1 : {"type": "MSG", ...} [Autoreply]
+
+== Leave process ==
+MAIN -> DISC : send_leave() [Broadcast + Direct]
+DISC -> NET : USERLEAVE handle [Broadcast zu 4001]
+NET -> Q2 : {"type": "LEAVE", "handle": handle}
+Q2 -> MAIN : show_messages removes from known_users
+
+note over Q3, Q4
+  disc_to_net und net_to_disc
+  werden aktuell nicht aktiv genutzt
+  (reserviert für zukünftige Features)
+end note
+
+note over MAIN
+  Hauptprozess führt aus:
+  - CLI-Interface (cli_loop)
+  - Message Display (show_messages Thread)
+  - Konfiguration (config_manager)
+end note
+
+note over NET
+  Network-Prozess führt aus:
+  - network_main (Hauptschleife)
+  - receive_messages (Thread)
+  - discovery_listener (Thread)
+end note
+
+note over DISC
+  Discovery-Prozess führt aus:
+  - discoveryloop (Hauptschleife)
+  - Singleton-Prüfung
+  - Broadcast-Handling
+end note
+
+@enduml

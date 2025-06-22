@@ -328,8 +328,8 @@ Die Implementierung des SLCP Chat-Systems demonstriert eine funktionsfähige Pee
 
 Die gewählten Technologien (Python, UDP, Multiprocessing) bieten eine gute Balance zwischen Entwicklungsgeschwindigkeit und Systemleistung für die Zielanwendung in lokalen Netzwerkumgebungen.
 
-@author Team SLCP Development
-@date Sommersemester 2025
+@author Noah Wolde Suphi Dogruel, Sebastian Stautz , Issa Waheed, Khanh-Tam Vu
+@date 22.06.2025 Sommersemester 2025
 @version 1.0
 
 @see @ref architecture_page "Systemarchitektur"

@@ -183,13 +183,14 @@ stop
 # config.toml
 [user]
 handle = "Alice"
+autoreply = "Ich bin gerade nicht da."
 
 [network]
-base_port = 5000
+port_range = [5000, 5010]
 whois_port = 4000
 
 [paths]
-image_dir = "./received_images/"
+image_dir = "./image"
 
 @subsection error_handling Fehlerbehandlung
 
@@ -201,7 +202,7 @@ Resource Limits: Queue-Größenbeschränkungen
 
 @warning Sicherheitshinweis: Keine Verschlüsselung - nur für vertrauenswürdige Netzwerke!
 
-@author Entwicklerteam
-@date Sommersemester 2025
-@version 2.0
+@author Noah Wolde Suphi Dogruel, Sebastian Stautz , Issa Waheed, Khanh-Tam Vu
+@date 22.06.2025 Sommersemester 2025
+@version 1.0
 */

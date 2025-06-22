@@ -59,8 +59,8 @@ Das **Simple Local Chat Protocol** definiert:
 @section license_sec Lizenz
 @verbinclude LICENSE
 
-@author Ihr Team
-@date Sommersemester 2025
+@author Noah Wolde Suphi Dogruel, Sebastian Stautz , Issa Waheed, Khanh-Tam Vu
+@date 22.06.2025 Sommersemester 2025
 @version 1.0
 
 @see @ref architecture_page "Systemarchitektur"
