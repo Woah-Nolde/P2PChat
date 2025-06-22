@@ -12,13 +12,4 @@ cd p2p-chat
 pip install -r requirements.txt
 \endcode
 
-\section configuration Konfiguration
-Bearbeiten Sie `config/config.toml`:
-```toml
-[user]
-handle = "Ihr_Name"
-autoreply = "Ich bin nicht verfügbar"
-
-[network]
-whoisport = 4000
-port_range = [5000, 5050]
+siehe README.md
